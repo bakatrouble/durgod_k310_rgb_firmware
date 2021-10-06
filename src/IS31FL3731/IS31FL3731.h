@@ -37,6 +37,7 @@ protected:
     void selectBank(uint8_t driver, uint8_t bank);
     void writeRegister8(uint8_t driver, uint8_t bank, uint8_t reg, uint8_t data);
     void writeBytes(uint8_t address, uint8_t reg, uint8_t len, uint8_t *data);
+    void displayFrame(uint8_t frame);
     I2C i2c = I2C(P0_5, P0_4);
     const uint8_t addresses[4] = { 0x74, 0x75, 0x76, 0x77 };
 };

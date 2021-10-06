@@ -18,11 +18,6 @@ bool IS31FL3731::init() {
         // all LEDs on & 0 PWM
         clear(i); // set each led to 0 PWM
 
-        for (uint8_t f=0; f<8; f++) {
-            for (uint8_t j=0; j<=0x11; j++)
-                writeRegister8(i, f, j, 0xff);     // each 8 LEDs on
-        }
-
         writeRegister8(i, ISSI_BANK_FUNCTIONREG, ISSI_REG_AUDIOSYNC, 0x0);
     }
 
@@ -68,4 +63,12 @@ void IS31FL3731::writeBytes(uint8_t address, uint8_t reg, uint8_t len, uint8_t *
         i2c.write(data[i]);
     }
     i2c.stop();
+}
+
+void IS31FL3731::displayFrame(uint8_t frame) {
+    if (frame > 7)
+        frame = 0;
+    for (unsigned char address : addresses) {
+        writeRegister8(address, ISSI_BANK_FUNCTIONREG, ISSI_REG_PICTUREFRAME, frame);
+    }
 }

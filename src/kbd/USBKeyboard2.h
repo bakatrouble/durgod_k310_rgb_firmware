@@ -22,9 +22,12 @@
 #include "USBHID.h"
 #include "Stream.h"
 
+#define HID_GET_PROTOCOL (0x3)
+#define HID_SET_PROTOCOL (0xb)
+
 class USBKeyboard2: public USBHID {
 public:
-    USBKeyboard2(uint16_t vendor_id = 0xD60D, uint16_t product_id = 0x3100, uint16_t product_release = 0x0004):
+    USBKeyboard2(uint16_t vendor_id = 0x2f68, uint16_t product_id = 0x0041, uint16_t product_release = 0x0114):
             USBHID(0, 0, vendor_id, product_id, product_release, false) {
         lock_status = 0;
         connect();
@@ -54,7 +57,19 @@ public:
     */
     uint8_t lockStatus();
 
-    void sendKeycodes(bool pressedKeys[]);
+    void sendKeycodes(bool *pressedKeys, uint8_t layer = 0);
+
+    void sendVendor(uint8_t *data, uint32_t n);
+
+    bool USBCallback_request() override;
+
+    bool isBootProtocol() {
+        return boot_protocol;
+    }
+
+    bool vendorCommandProcessed = true;
+    uint8_t vendorCommandData[64];
+    bool statusLed = false;
 
 protected:
     /*
@@ -90,6 +105,7 @@ protected:
 private:
     uint8_t configurationDescriptor[41];
     uint8_t lock_status;
+    bool boot_protocol = true;
 };
 
 #endif

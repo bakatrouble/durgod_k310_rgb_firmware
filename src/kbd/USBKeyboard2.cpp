@@ -22,6 +22,9 @@
 #include "gen.h"
 
 #define REPORT_ID_KEYBOARD 1
+#define REPORT_ID_NKRO 2
+#define REPORT_ID_VENDOR 3
+#define REPORT_ID_VOLUME 0x20
 
 #define MODMASK_LCTRL 0x1
 #define MODMASK_LSHIFT 0x2
@@ -32,13 +35,13 @@
 #define MODMASK_RALT 0x40
 #define MODMASK_RGUI 0x80
 
-#define NKRO_EPSIZE 32
+#define NKRO_EPSIZE 16
 
 const uint8_t * USBKeyboard2::reportDesc() {
     static const uint8_t reportDescriptor[] = {
-            USAGE_PAGE(1), 0x01,                    // Generic Desktop
-            USAGE(1), 0x06,                         // Keyboard
-            COLLECTION(1), 0x01,                    // Application
+            USAGE_PAGE(1), 0x01,                        // Generic Desktop
+            USAGE(1), 0x06,                             // Keyboard
+            COLLECTION(1), 0x01,                        // Application
                 REPORT_ID(1),       REPORT_ID_KEYBOARD,
 
                 USAGE_PAGE(1), 0x07,                    // Key Codes
@@ -51,7 +54,7 @@ const uint8_t * USBKeyboard2::reportDesc() {
                 INPUT(1), 0x02,                         // Data, Variable, Absolute
                 REPORT_COUNT(1), 0x01,
                 REPORT_SIZE(1), 0x08,
-                INPUT(1), 0x02,                         // Constant
+                INPUT(1), 0x01,                         // Constant
 
 
                 REPORT_COUNT(1), 0x05,
@@ -72,15 +75,85 @@ const uint8_t * USBKeyboard2::reportDesc() {
                 USAGE_MINIMUM(1), 0x00,
                 USAGE_MAXIMUM(1), 0x65,
                 INPUT(1), 0x00,                         // Data, Array
+            END_COLLECTION(0),
 
-//                REPORT_COUNT(1), (NKRO_EPSIZE-1)*8,
-//                REPORT_SIZE(1), 0x01,
-//                LOGICAL_MINIMUM(1), 0x00,
-//                LOGICAL_MAXIMUM(1), 0x01,
-//                USAGE_PAGE(1), 0x07,                    // Key Codes
-//                USAGE_MINIMUM(1), 0x00,
-//                USAGE_MAXIMUM(1), (NKRO_EPSIZE-1)*8-1,
-//                INPUT(1), 0x02,
+            // NKRO bitmap
+            USAGE_PAGE(1), 0x01,                        // Generic Desktop
+            USAGE(1), 0x06,                             // Keyboard
+            COLLECTION(1), 0x01,                        // Application
+                REPORT_ID(1),       REPORT_ID_NKRO,
+
+                USAGE_PAGE(1), 0x07,                    // Key Codes
+                USAGE_MINIMUM(1), 0xE0,
+                USAGE_MAXIMUM(1), 0xE7,
+                LOGICAL_MINIMUM(1), 0x00,
+                LOGICAL_MAXIMUM(1), 0x01,
+                REPORT_SIZE(1), 0x01,
+                REPORT_COUNT(1), 0x08,
+                INPUT(1), 0x02,                         // Data, Variable, Absolute
+                REPORT_COUNT(1), 0x01,
+                REPORT_SIZE(1), 0x08,
+                INPUT(1), 0x01,                         // Constant
+
+
+                REPORT_COUNT(1), 0x05,
+                REPORT_SIZE(1), 0x01,
+                USAGE_PAGE(1), 0x08,                    // LEDs
+                USAGE_MINIMUM(1), 0x01,
+                USAGE_MAXIMUM(1), 0x05,
+                OUTPUT(1), 0x02,                        // Data, Variable, Absolute
+                REPORT_COUNT(1), 0x01,
+                REPORT_SIZE(1), 0x03,
+                OUTPUT(1), 0x03,                        // Constant
+
+                USAGE_PAGE(1), 0x07,                    // Key Codes  0x07
+                REPORT_COUNT(1), (NKRO_EPSIZE-1)*8,
+                REPORT_SIZE(1), 0x01,
+                LOGICAL_MINIMUM(1), 0x00,
+                LOGICAL_MAXIMUM(1), 0x01,
+                USAGE_MINIMUM(1), 0x00,
+                USAGE_MAXIMUM(1), (NKRO_EPSIZE-1)*8-1,
+                INPUT(1), 0x02,
+            END_COLLECTION(0),
+
+            USAGE_PAGE(2), LSB(0xFFAB), MSB(0xFFAB),  // Vendor Specific?
+            USAGE(2), LSB(0x0200), MSB(0x0200),    // Vendor Usage 1
+            COLLECTION(1), 0x01,                        // Application
+                REPORT_ID(1), REPORT_ID_VENDOR,
+
+                REPORT_SIZE(1), 0x08,
+                LOGICAL_MINIMUM(1), 0x00,
+                LOGICAL_MAXIMUM(1), 0xFF,
+
+                REPORT_COUNT(1), 0x40,
+                USAGE(1), 0x01,
+                INPUT(1), 0x02,
+
+                REPORT_COUNT(1), 0x40,
+                USAGE(1), 0x02,
+                OUTPUT(1), 0x02,
+            END_COLLECTION(0),
+            
+            // Media Control
+            USAGE_PAGE(1), 0x0C,
+                USAGE(1), 0x01,
+                COLLECTION(1), 0x01,
+                REPORT_ID(1), REPORT_ID_VOLUME,
+                USAGE_PAGE(1), 0x0C,
+                LOGICAL_MINIMUM(1), 0x00,
+                LOGICAL_MAXIMUM(1), 0x01,
+                REPORT_SIZE(1), 0x01,
+                REPORT_COUNT(1), 0x07,
+                USAGE(1), 0xB5,                         // Next Track
+                USAGE(1), 0xB6,                         // Previous Track
+                USAGE(1), 0xB7,                         // Stop
+                USAGE(1), 0xCD,                         // Play / Pause
+                USAGE(1), 0xE2,                         // Mute
+                USAGE(1), 0xE9,                         // Volume Up
+                USAGE(1), 0xEA,                         // Volume Down
+                INPUT(1), 0x02,                         // Input (Data, Variable, Absolute)
+                REPORT_COUNT(1), 0x01,
+                INPUT(1), 0x01,
             END_COLLECTION(0),
             };
     reportLength = sizeof(reportDescriptor);
@@ -90,11 +163,21 @@ const uint8_t * USBKeyboard2::reportDesc() {
 
 bool USBKeyboard2::EPINT_OUT_callback() {
     uint32_t bytesRead = 0;
-    uint8_t led[65];
-    USBDevice::readEP(EPINT_OUT, led, &bytesRead, MAX_HID_REPORT_SIZE);
+    uint8_t report[65];
+    USBDevice::readEP(EPINT_OUT, report, &bytesRead, MAX_HID_REPORT_SIZE);
 
-    // we take led[1] because led[0] is the report ID
-    lock_status = led[1] & 0x07;
+    if (report[0] == REPORT_ID_KEYBOARD || report[0] == REPORT_ID_NKRO) {
+        lock_status = report[1] & 0x07;
+    }
+
+    if (report[0] == REPORT_ID_VENDOR) {
+        memcpy(vendorCommandData + 1, report + 1, 64);
+        vendorCommandProcessed = false;
+    }
+
+    statusLed = !statusLed;
+
+    sendVendor(report, 1);
 
     // We activate the endpoint to be able to recceive data
     if (!readStart(EPINT_OUT, MAX_HID_REPORT_SIZE))
@@ -122,51 +205,51 @@ const uint8_t * USBKeyboard2::configurationDesc() {
             0x01,                               // bNumInterfaces
             DEFAULT_CONFIGURATION,              // bConfigurationValue
             0x00,                               // iConfiguration
-            C_RESERVED | C_SELF_POWERED,        // bmAttributes
-            C_POWER(0),                         // bMaxPower
+            C_RESERVED | C_REMOTE_WAKEUP,       // bmAttributes
+            C_POWER(500),                       // bMaxPower
 
-            INTERFACE_DESCRIPTOR_LENGTH,        // bLength
-            INTERFACE_DESCRIPTOR,               // bDescriptorType
-            0x00,                               // bInterfaceNumber
-            0x00,                               // bAlternateSetting
-            0x02,                               // bNumEndpoints
-            HID_CLASS,                          // bInterfaceClass
-            HID_SUBCLASS_BOOT,                  // bInterfaceSubClass
-            HID_PROTOCOL_KEYBOARD,              // bInterfaceProtocol
-            0x00,                               // iInterface
+                INTERFACE_DESCRIPTOR_LENGTH,        // bLength
+                INTERFACE_DESCRIPTOR,               // bDescriptorType
+                0x00,                               // bInterfaceNumber
+                0x00,                               // bAlternateSetting
+                0x02,                               // bNumEndpoints
+                HID_CLASS,                          // bInterfaceClass
+                HID_SUBCLASS_BOOT,                  // bInterfaceSubClass
+                HID_PROTOCOL_KEYBOARD,              // bInterfaceProtocol
+                0x00,                               // iInterface
 
-            HID_DESCRIPTOR_LENGTH,              // bLength
-            HID_DESCRIPTOR,                     // bDescriptorType
-            LSB(HID_VERSION_1_11),              // bcdHID (LSB)
-            MSB(HID_VERSION_1_11),              // bcdHID (MSB)
-            0x00,                               // bCountryCode
-            0x01,                               // bNumDescriptors
-            REPORT_DESCRIPTOR,                  // bDescriptorType
-            (uint8_t)(LSB(reportDescLength())), // wDescriptorLength (LSB)
-            (uint8_t)(MSB(reportDescLength())), // wDescriptorLength (MSB)
+                    HID_DESCRIPTOR_LENGTH,              // bLength
+                    HID_DESCRIPTOR,                     // bDescriptorType
+                    LSB(HID_VERSION_1_11),              // bcdHID (LSB)
+                    MSB(HID_VERSION_1_11),              // bcdHID (MSB)
+                    0x00,                               // bCountryCode
+                    0x01,                               // bNumDescriptors
+                    REPORT_DESCRIPTOR,                  // bDescriptorType
+                    (uint8_t)(LSB(reportDescLength())), // wDescriptorLength (LSB)
+                    (uint8_t)(MSB(reportDescLength())), // wDescriptorLength (MSB)
 
-            ENDPOINT_DESCRIPTOR_LENGTH,         // bLength
-            ENDPOINT_DESCRIPTOR,                // bDescriptorType
-            PHY_TO_DESC(EPINT_IN),              // bEndpointAddress
-            E_INTERRUPT,                        // bmAttributes
-            LSB(MAX_PACKET_SIZE_EPINT),         // wMaxPacketSize (LSB)
-            MSB(MAX_PACKET_SIZE_EPINT),         // wMaxPacketSize (MSB)
-            1,                                  // bInterval (milliseconds)
+                    ENDPOINT_DESCRIPTOR_LENGTH,         // bLength
+                    ENDPOINT_DESCRIPTOR,                // bDescriptorType
+                    PHY_TO_DESC(EPINT_IN),              // bEndpointAddress
+                    E_INTERRUPT,                        // bmAttributes
+                    LSB(MAX_PACKET_SIZE_EPINT),         // wMaxPacketSize (LSB)
+                    MSB(MAX_PACKET_SIZE_EPINT),         // wMaxPacketSize (MSB)
+                    1,                                  // bInterval (milliseconds)
 
-            ENDPOINT_DESCRIPTOR_LENGTH,         // bLength
-            ENDPOINT_DESCRIPTOR,                // bDescriptorType
-            PHY_TO_DESC(EPINT_OUT),             // bEndpointAddress
-            E_INTERRUPT,                        // bmAttributes
-            LSB(MAX_PACKET_SIZE_EPINT),         // wMaxPacketSize (LSB)
-            MSB(MAX_PACKET_SIZE_EPINT),         // wMaxPacketSize (MSB)
-            1,                                  // bInterval (milliseconds)
+                    ENDPOINT_DESCRIPTOR_LENGTH,         // bLength
+                    ENDPOINT_DESCRIPTOR,                // bDescriptorType
+                    PHY_TO_DESC(EPINT_OUT),             // bEndpointAddress
+                    E_INTERRUPT,                        // bmAttributes
+                    LSB(MAX_PACKET_SIZE_EPINT),         // wMaxPacketSize (LSB)
+                    MSB(MAX_PACKET_SIZE_EPINT),         // wMaxPacketSize (MSB)
+                    1,                                  // bInterval (milliseconds)
     };
     MBED_ASSERT(sizeof(configurationDescriptorTemp) == sizeof(configurationDescriptor));
     memcpy(configurationDescriptor, configurationDescriptorTemp, sizeof(configurationDescriptor));
     return configurationDescriptor;
 }
 
-void USBKeyboard2::sendKeycodes(bool pressedKeys[]) {
+void USBKeyboard2::sendKeycodes(bool pressedKeys[], uint8_t layer) {
     uint8_t modifiers = 0;
     if (pressedKeys[keycodeToIndex[KC_LCTL]])
         modifiers |= MODMASK_LCTRL;
@@ -192,15 +275,63 @@ void USBKeyboard2::sendKeycodes(bool pressedKeys[]) {
                 0, 0, 0, 0, 0, 0
             }
     };
+    HID_REPORT nkroReport = {
+            19,
+            {
+                REPORT_ID_NKRO,
+                modifiers,
+                0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+            }
+    };
     uint8_t ptr = 3;
     for (uint8_t idx=0; idx < 104; idx++) {
         if (pressedKeys[idx]) {
+            uint8_t keycode = indexToKeycode[idx];
             if (ptr < 9) {
-                report.data[ptr++] = indexToKeycode[idx];
+                report.data[ptr++] = keycode;
             } else {
-                break;
+                nkroReport.data[3 + keycode / 8] |= 1 << keycode % 8;
             }
         }
     }
     send(&report);
+    send(&nkroReport);
+}
+
+void USBKeyboard2::sendVendor(uint8_t *data, uint32_t n) {
+    HID_REPORT report = {
+            n+1,
+            { REPORT_ID_VENDOR }
+    };
+    memcpy(data, report.data + 1, n);
+    send(&report);
+}
+
+const uint8_t BOOT_PROTOCOL = 0x00;
+const uint8_t REPORT_PROTOCOL = 0x01;
+
+bool USBKeyboard2::USBCallback_request() {
+    bool success = USBHID::USBCallback_request();
+    if (success)
+        return success;
+
+    CONTROL_TRANSFER * transfer = getTransferPtr();
+
+    if (transfer->setup.bmRequestType.Type == CLASS_TYPE) {
+        switch (transfer->setup.bRequest) {
+            case HID_GET_PROTOCOL:
+                transfer->remaining = 1;
+                transfer->ptr = (uint8_t*)&(boot_protocol ? BOOT_PROTOCOL : REPORT_PROTOCOL);
+                transfer->direction = DEVICE_TO_HOST;
+                success = true;
+                break;
+            case HID_SET_PROTOCOL:
+                boot_protocol = transfer->setup.wValue == 0x00;
+                success = true;
+                break;
+        }
+    }
+
+    return success;
 }

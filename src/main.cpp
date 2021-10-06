@@ -1,12 +1,13 @@
 #include <USBSerial.h>
-#include "mbed.h"
+#include <mbed.h>
 #include "defines.h"
 #include "kbd/USBKeyboard2.h"
 #include "IS31FL3731/IS31FL3731.h"
 #include "gen.h"
+#include "iap.h"
 
 //USBSerial serial;
-USBKeyboard2 kbd(0xD60D, 0x3100, 0x0004);
+USBKeyboard2 kbd;
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
@@ -21,7 +22,7 @@ BusIn rows(rowPins[0], rowPins[1], rowPins[2], rowPins[3], rowPins[4], rowPins[5
 #pragma clang diagnostic pop
 
 static bool pressedKeys[105];
-static bool fnLayer = false, winLocked = false;
+static bool fnLayer = false, winLocked = false, ledsEnabled = true;
 
 void enableLed(uint8_t idx) {
     ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].r, 0xFF);
@@ -99,6 +100,27 @@ int main() {
         led_num = !(lockStatus & 0x1);
         led_caps = !(lockStatus & 0x2);
         led_scroll = !(lockStatus & 0x4);
+        led_app = kbd.statusLed;
+
+        if (!kbd.vendorCommandProcessed) {
+            switch (kbd.vendorCommandData[0]) {
+                case 0x01:
+                    if (ledsEnabled)
+                        disableAllLeds();
+                    else
+                        enableAllLeds();
+                    ledsEnabled = !ledsEnabled;
+                    break;
+                case 0xFF:
+                    IAP::invokeIsp();
+                    break;
+            }
+            uint8_t response[] = { kbd.vendorCommandData[0] };
+            kbd.sendVendor(response, 1);
+            kbd.vendorCommandProcessed = true;
+        }
+
+        wait(.005);
     }
 }
 #pragma clang diagnostic pop
