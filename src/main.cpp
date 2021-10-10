@@ -22,18 +22,19 @@ BusIn rows(rowPins[0], rowPins[1], rowPins[2], rowPins[3], rowPins[4], rowPins[5
 #pragma clang diagnostic pop
 
 static bool pressedKeys[105];
-static bool fnLayer = false, winLocked = false, ledsEnabled = true;
+static bool changedClasses[2];
+static bool winLocked = false, ledsEnabled = true;
 
 void enableLed(uint8_t idx) {
-    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].r, 0xFF);
-    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].g, 0xFF);
-    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].b, 0xFF);
+    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].r, 0xFF, false);
+    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].g, 0xFF, false);
+    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].b, 0xFF, false);
 }
 
 void disableLed(uint8_t idx) {
-    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].r, 0);
-    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].g, 0);
-    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].b, 0);
+    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].r, 0, false);
+    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].g, 0, false);
+    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].b, 0, false);
 }
 
 
@@ -46,13 +47,13 @@ bool scanKeys() {
             uint8_t idx = matrixToIndex[row][col];
             if ((rows & (1 << row)) == 0) {
                 if (!pressedKeys[idx]) {
-                    disableLed(idx);
+//                    disableLed(idx);
                     pressedKeys[idx] = true;
                     changed = true;
                 }
             } else {
                 if (pressedKeys[idx]) {
-                    enableLed(idx);
+//                    enableLed(idx);
                     pressedKeys[idx] = false;
                     changed = true;
                 }
@@ -76,6 +77,7 @@ void enableAllLeds() {
         ledDrivers.setLEDPWM(idx.driver, idx.g, 0xFF);
         ledDrivers.setLEDPWM(idx.driver, idx.b, 0xFF);
     }
+    ledDrivers.toggleFrame();
 }
 
 void disableAllLeds() {
@@ -83,6 +85,7 @@ void disableAllLeds() {
     ledDrivers.clear(1);
     ledDrivers.clear(2);
     ledDrivers.clear(3);
+    ledDrivers.toggleFrame();
 }
 
 #pragma clang diagnostic push
@@ -91,10 +94,29 @@ int main() {
     initHardware();
     enableAllLeds();
 
+    bool fnLayer = false;
+
     while (true) {
         auto changed = scanKeys();
-        if (changed)
-            kbd.sendKeycodes(pressedKeys);
+        if (changed) {
+            bool fnPressed = pressedKeys[keycodeToIndex[KC_FN0]];
+            if (!fnLayer && fnPressed) {
+                disableAllLeds();
+                enableLed(keycodeToIndex[KC_F1]);
+                enableLed(keycodeToIndex[KC_F2]);
+                enableLed(keycodeToIndex[KC_F3]);
+                enableLed(keycodeToIndex[KC_F4]);
+                enableLed(keycodeToIndex[KC_F5]);
+                enableLed(keycodeToIndex[KC_F6]);
+                enableLed(keycodeToIndex[KC_F7]);
+                fnLayer = true;
+            }
+            if (fnLayer && !fnPressed) {
+                enableAllLeds();
+                fnLayer = false;
+            }
+            kbd.sendKeycodes(pressedKeys, fnLayer ? 1 : 0);
+        }
 
         uint8_t lockStatus = kbd.lockStatus();
         led_num = !(lockStatus & 0x1);

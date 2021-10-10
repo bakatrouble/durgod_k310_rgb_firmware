@@ -29,17 +29,23 @@ public:
     bool init();
     void clear(uint8_t driver);
 
-    void setLEDPWM(uint8_t driver, uint8_t lednum, uint8_t pwm, uint8_t bank = 0);
-    void displayFrame(uint8_t driver, uint8_t frame);
-
+    void setLEDPWM(uint8_t driver, uint8_t lednum, uint8_t pwm, bool toBuffer = true);
+    void toggleFrame() {
+        uint8_t newFrame = activeFrame == 0 ? 1 : 0;
+        for (uint8_t i=0; i < 4; i++)
+            displayFrame(i, newFrame);
+        activeFrame = newFrame;
+    }
 
 protected:
     void selectBank(uint8_t driver, uint8_t bank);
     void writeRegister8(uint8_t driver, uint8_t bank, uint8_t reg, uint8_t data);
     void writeBytes(uint8_t address, uint8_t reg, uint8_t len, uint8_t *data);
-    void displayFrame(uint8_t frame);
+    void displayFrame(uint8_t driver, uint8_t frame);
     I2C i2c = I2C(P0_5, P0_4);
+
     const uint8_t addresses[4] = { 0x74, 0x75, 0x76, 0x77 };
+    uint8_t activeFrame = 0;
 };
 
 #endif

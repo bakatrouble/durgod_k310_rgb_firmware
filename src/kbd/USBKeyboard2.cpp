@@ -23,8 +23,8 @@
 
 #define REPORT_ID_KEYBOARD 1
 #define REPORT_ID_NKRO 2
-#define REPORT_ID_VENDOR 3
-#define REPORT_ID_VOLUME 0x20
+#define REPORT_ID_CONSUMER 3
+#define REPORT_ID_VENDOR 4
 
 #define MODMASK_LCTRL 0x1
 #define MODMASK_LSHIFT 0x2
@@ -116,14 +116,30 @@ const uint8_t * USBKeyboard2::reportDesc() {
                 INPUT(1), 0x02,
             END_COLLECTION(0),
 
-            USAGE_PAGE(2), LSB(0xFFAB), MSB(0xFFAB),  // Vendor Specific?
-            USAGE(2), LSB(0x0200), MSB(0x0200),    // Vendor Usage 1
-            COLLECTION(1), 0x01,                        // Application
+            // Media Control
+            USAGE_PAGE(1), 0x0C,
+            USAGE(1), 0x01,
+            COLLECTION(1), 0x01,
+                REPORT_ID(1), REPORT_ID_CONSUMER,
+                LOGICAL_MINIMUM(1), 0x00,
+                LOGICAL_MAXIMUM(2), 0xFF, 0x1F,
+                USAGE_MINIMUM(1), 0x00,
+                USAGE_MAXIMUM(2), 0xFF, 0x1F,
+                REPORT_SIZE(1), 0x10,
+                REPORT_COUNT(1), 0x01,
+                INPUT(1), 0x00,
+            END_COLLECTION(0),
+
+            USAGE_PAGE(2), LSB(0xFF1C), MSB(0xFF1C),  // Vendor Specific?
+            USAGE(1), 0x92,                                 // Vendor Usage 1
+            COLLECTION(1), 0x01,                            // Application
                 REPORT_ID(1), REPORT_ID_VENDOR,
 
-                REPORT_SIZE(1), 0x08,
+            USAGE_MINIMUM(1), 0x00,
+            USAGE_MAXIMUM(1), 0x00,
                 LOGICAL_MINIMUM(1), 0x00,
                 LOGICAL_MAXIMUM(1), 0xFF,
+                REPORT_SIZE(1), 0x08,
 
                 REPORT_COUNT(1), 0x40,
                 USAGE(1), 0x01,
@@ -132,28 +148,6 @@ const uint8_t * USBKeyboard2::reportDesc() {
                 REPORT_COUNT(1), 0x40,
                 USAGE(1), 0x02,
                 OUTPUT(1), 0x02,
-            END_COLLECTION(0),
-            
-            // Media Control
-            USAGE_PAGE(1), 0x0C,
-                USAGE(1), 0x01,
-                COLLECTION(1), 0x01,
-                REPORT_ID(1), REPORT_ID_VOLUME,
-                USAGE_PAGE(1), 0x0C,
-                LOGICAL_MINIMUM(1), 0x00,
-                LOGICAL_MAXIMUM(1), 0x01,
-                REPORT_SIZE(1), 0x01,
-                REPORT_COUNT(1), 0x07,
-                USAGE(1), 0xB5,                         // Next Track
-                USAGE(1), 0xB6,                         // Previous Track
-                USAGE(1), 0xB7,                         // Stop
-                USAGE(1), 0xCD,                         // Play / Pause
-                USAGE(1), 0xE2,                         // Mute
-                USAGE(1), 0xE9,                         // Volume Up
-                USAGE(1), 0xEA,                         // Volume Down
-                INPUT(1), 0x02,                         // Input (Data, Variable, Absolute)
-                REPORT_COUNT(1), 0x01,
-                INPUT(1), 0x01,
             END_COLLECTION(0),
             };
     reportLength = sizeof(reportDescriptor);
@@ -284,19 +278,34 @@ void USBKeyboard2::sendKeycodes(bool pressedKeys[], uint8_t layer) {
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
             }
     };
+    HID_REPORT mediaReport = {
+            3,
+            {
+                REPORT_ID_CONSUMER,
+                0, 0
+            }
+    };
     uint8_t ptr = 3;
     for (uint8_t idx=0; idx < 104; idx++) {
         if (pressedKeys[idx]) {
-            uint8_t keycode = indexToKeycode[idx];
-            if (ptr < 9) {
-                report.data[ptr++] = keycode;
+            uint8_t keycode = indexToKeycode[layer][idx];
+            if (indexToKeycodeClass[layer][idx] == KCLASS_GENERIC) {
+                if (ptr < 9) {
+                    report.data[ptr++] = keycode;
+                } else {
+                    nkroReport.data[3 + keycode / 8] |= 1 << keycode % 8;
+                }
             } else {
-                nkroReport.data[3 + keycode / 8] |= 1 << keycode % 8;
+                mediaReport.data[1] = keycode;
+                send(&mediaReport);
             }
         }
     }
     send(&report);
     send(&nkroReport);
+    if (mediaReport.data[1] == 0) {
+        send(&mediaReport);
+    }
 }
 
 void USBKeyboard2::sendVendor(uint8_t *data, uint32_t n) {

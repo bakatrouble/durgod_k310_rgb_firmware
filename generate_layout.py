@@ -1,3 +1,7 @@
+import enum
+from dataclasses import dataclass
+from typing import Iterable
+
 KC_NO = 0x00
 KC_ROLL_OVER = 0x01
 KC_POST_FAIL = 0x02
@@ -164,6 +168,14 @@ KC_CLEAR_AGAIN = 0xA2
 KC_CRSEL = 0xA3
 KC_EXSEL = 0xA4
 
+KC_AUDIO_MUTE = 0xE2
+KC_AUDIO_VOL_UP = 0xE9
+KC_AUDIO_VOL_DOWN = 0xEA
+KC_MEDIA_NEXT_TRACK = 0xB5
+KC_MEDIA_PREV_TRACK = 0xB6
+KC_MEDIA_STOP = 0xB7
+KC_MEDIA_PLAY_PAUSE = 0xCD
+
 KC_FN0 = 0xC0
 
 KC_LCTRL = KC_LCTL = 0xE0
@@ -184,135 +196,169 @@ key_map = [
     KC_LCTL, KC_LGUI, KC_LALT,                      KC_SPC,                       KC_RALT, KC_FN0,  KC_APP,  KC_RCTL,      KC_LEFT, KC_DOWN, KC_RGHT,      KC_KP_0,          KC_PDOT
 ]
 
+@dataclass 
+class LedLocation:
+    d: int
+    r: int
+    g: int
+    b: int
+    
+@dataclass
+class MatrixLocation:
+    r: int
+    c: int
+    
+class KeycodeClass(enum.Enum):
+    GENERIC = 0
+    CONSUMER = 1
+
+@dataclass
+class KeyInfo:
+    keycode_name: str
+    led_location: LedLocation
+    matrix_location: MatrixLocation
+    additional_layers: Iterable[int]
+    keycode_classes: Iterable[KeycodeClass]
+    
+LL = LedLocation
+ML = MatrixLocation
+KC = KeycodeClass
+KI = KeyInfo
+
 key_info = {
-    KC_ESC:  ('KC_ESC',  (3, 0x88, 0x78, 0x68), (0, 0x0)),
-    KC_F1:   ('KC_F1',   (3, 0x89, 0x79, 0x69), (0, 0x1)),
-    KC_F2:   ('KC_F2',   (3, 0x8A, 0x7A, 0x6A), (0, 0x2)),
-    KC_F3:   ('KC_F3',   (3, 0x8B, 0x7B, 0x6B), (0, 0x3)),
-    KC_F4:   ('KC_F4',   (3, 0x8C, 0x7C, 0x6C), (0, 0x4)),
-    KC_F5:   ('KC_F5',   (3, 0x8D, 0x7D, 0x6D), (0, 0x5)),
-    KC_F6:   ('KC_F6',   (3, 0x8E, 0x7E, 0x5D), (0, 0x6)),
-    KC_F7:   ('KC_F7',   (3, 0x8F, 0x6E, 0x5E), (0, 0x7)),
-    KC_F8:   ('KC_F8',   (1, 0x80, 0x70, 0x60), (0, 0x8)),
-    KC_F9:   ('KC_F9',   (1, 0x81, 0x71, 0x61), (0, 0x9)),
-    KC_F10:  ('KC_F10',  (1, 0x82, 0x72, 0x62), (0, 0xA)),
-    KC_F11:  ('KC_F11',  (1, 0x83, 0x73, 0x63), (0, 0xB)),
-    KC_F12:  ('KC_F12',  (1, 0x84, 0x74, 0x64), (0, 0xC)),
-    KC_PSCR: ('KC_PSCR', (1, 0x85, 0x75, 0x65), (0, 0xD)),
-    KC_SLCK: ('KC_SLCK', (1, 0x86, 0x76, 0x55), (0, 0xE)),
-    KC_PAUS: ('KC_PAUS', (1, 0x87, 0x66, 0x56), (0, 0xF)),
+    KC_ESC:  KI('KC_ESC',  LL(3, 0x88, 0x78, 0x68), ML(0, 0x0), (), (KC.GENERIC,)),
+    KC_F1:   KI('KC_F1',   LL(3, 0x89, 0x79, 0x69), ML(0, 0x1), (KC_MEDIA_PLAY_PAUSE,), (KC.GENERIC, KC.CONSUMER)),
+    KC_F2:   KI('KC_F2',   LL(3, 0x8A, 0x7A, 0x6A), ML(0, 0x2), (KC_STOP,), (KC.GENERIC, KC.CONSUMER)),
+    KC_F3:   KI('KC_F3',   LL(3, 0x8B, 0x7B, 0x6B), ML(0, 0x3), (KC_MEDIA_PREV_TRACK,), (KC.GENERIC, KC.CONSUMER)),
+    KC_F4:   KI('KC_F4',   LL(3, 0x8C, 0x7C, 0x6C), ML(0, 0x4), (KC_MEDIA_NEXT_TRACK,), (KC.GENERIC, KC.CONSUMER)),
+    KC_F5:   KI('KC_F5',   LL(3, 0x8D, 0x7D, 0x6D), ML(0, 0x5), (KC_AUDIO_MUTE,), (KC.GENERIC, KC.CONSUMER)),
+    KC_F6:   KI('KC_F6',   LL(3, 0x8E, 0x7E, 0x5D), ML(0, 0x6), (KC_AUDIO_VOL_DOWN,), (KC.GENERIC, KC.CONSUMER)),
+    KC_F7:   KI('KC_F7',   LL(3, 0x8F, 0x6E, 0x5E), ML(0, 0x7), (KC_AUDIO_VOL_UP,), (KC.GENERIC, KC.CONSUMER)),
+    KC_F8:   KI('KC_F8',   LL(1, 0x80, 0x70, 0x60), ML(0, 0x8), (), (KC.GENERIC,)),
+    KC_F9:   KI('KC_F9',   LL(1, 0x81, 0x71, 0x61), ML(0, 0x9), (), (KC.GENERIC,)),
+    KC_F10:  KI('KC_F10',  LL(1, 0x82, 0x72, 0x62), ML(0, 0xA), (), (KC.GENERIC,)),
+    KC_F11:  KI('KC_F11',  LL(1, 0x83, 0x73, 0x63), ML(0, 0xB), (), (KC.GENERIC,)),
+    KC_F12:  KI('KC_F12',  LL(1, 0x84, 0x74, 0x64), ML(0, 0xC), (), (KC.GENERIC,)),
+    KC_PSCR: KI('KC_PSCR', LL(1, 0x85, 0x75, 0x65), ML(0, 0xD), (), (KC.GENERIC,)),
+    KC_SLCK: KI('KC_SLCK', LL(1, 0x86, 0x76, 0x55), ML(0, 0xE), (), (KC.GENERIC,)),
+    KC_PAUS: KI('KC_PAUS', LL(1, 0x87, 0x66, 0x56), ML(0, 0xF), (), (KC.GENERIC,)),
 
-    KC_GRV:  ('KC_GRV',  (3, 0x08, 0x29, 0x39), (1, 0x0)),
-    KC_1:    ('KC_1',    (3, 0x09, 0x19, 0x3A), (1, 0x1)),
-    KC_2:    ('KC_2',    (3, 0x0A, 0x1A, 0x2A), (1, 0x2)),
-    KC_3:    ('KC_3',    (3, 0x0B, 0x1B, 0x2B), (1, 0x3)),
-    KC_4:    ('KC_4',    (3, 0x0C, 0x1C, 0x2C), (1, 0x4)),
-    KC_5:    ('KC_5',    (3, 0x0D, 0x1D, 0x2D), (1, 0x5)),
-    KC_6:    ('KC_6',    (3, 0x0E, 0x1E, 0x2E), (1, 0x6)),
-    KC_7:    ('KC_7',    (3, 0x0F, 0x1F, 0x2F), (1, 0x7)),
-    KC_8:    ('KC_8',    (1, 0x00, 0x21, 0x31), (1, 0x8)),
-    KC_9:    ('KC_9',    (1, 0x01, 0x11, 0x32), (1, 0x9)),
-    KC_0:    ('KC_0',    (1, 0x02, 0x12, 0x22), (1, 0xA)),
-    KC_MINS: ('KC_MINS', (1, 0x03, 0x13, 0x23), (1, 0xB)),
-    KC_EQL:  ('KC_EQL',  (1, 0x04, 0x14, 0x24), (1, 0xC)),
-    KC_BSPC: ('KC_BSPC', (1, 0x06, 0x16, 0x26), (1, 0xE)),
-    KC_INS:  ('KC_INS',  (1, 0x07, 0x17, 0x27), (2, 0xE)),
-    KC_HOME: ('KC_HOME', (2, 0x01, 0x11, 0x32), (2, 0xF)),
-    KC_PGUP: ('KC_PGUP', (2, 0x09, 0x19, 0x3A), (1, 0xF)),
-    KC_NLCK: ('KC_NLCK', (2, 0x0A, 0x1A, 0x2A), (6, 0xA)),
-    KC_PSLS: ('KC_PSLS', (2, 0x0B, 0x1B, 0x2B), (6, 0x9)),
-    KC_PAST: ('KC_PAST', (2, 0x0C, 0x1C, 0x2C), (6, 0x8)),
-    KC_PMNS: ('KC_PMNS', (2, 0x0D, 0x1D, 0x2D), (6, 0x7)),
+    KC_GRV:  KI('KC_GRV',  LL(3, 0x08, 0x29, 0x39), ML(1, 0x0), (), (KC.GENERIC,)),
+    KC_1:    KI('KC_1',    LL(3, 0x09, 0x19, 0x3A), ML(1, 0x1), (), (KC.GENERIC,)),
+    KC_2:    KI('KC_2',    LL(3, 0x0A, 0x1A, 0x2A), ML(1, 0x2), (), (KC.GENERIC,)),
+    KC_3:    KI('KC_3',    LL(3, 0x0B, 0x1B, 0x2B), ML(1, 0x3), (), (KC.GENERIC,)),
+    KC_4:    KI('KC_4',    LL(3, 0x0C, 0x1C, 0x2C), ML(1, 0x4), (), (KC.GENERIC,)),
+    KC_5:    KI('KC_5',    LL(3, 0x0D, 0x1D, 0x2D), ML(1, 0x5), (), (KC.GENERIC,)),
+    KC_6:    KI('KC_6',    LL(3, 0x0E, 0x1E, 0x2E), ML(1, 0x6), (), (KC.GENERIC,)),
+    KC_7:    KI('KC_7',    LL(3, 0x0F, 0x1F, 0x2F), ML(1, 0x7), (), (KC.GENERIC,)),
+    KC_8:    KI('KC_8',    LL(1, 0x00, 0x21, 0x31), ML(1, 0x8), (), (KC.GENERIC,)),
+    KC_9:    KI('KC_9',    LL(1, 0x01, 0x11, 0x32), ML(1, 0x9), (), (KC.GENERIC,)),
+    KC_0:    KI('KC_0',    LL(1, 0x02, 0x12, 0x22), ML(1, 0xA), (), (KC.GENERIC,)),
+    KC_MINS: KI('KC_MINS', LL(1, 0x03, 0x13, 0x23), ML(1, 0xB), (), (KC.GENERIC,)),
+    KC_EQL:  KI('KC_EQL',  LL(1, 0x04, 0x14, 0x24), ML(1, 0xC), (), (KC.GENERIC,)),
+    KC_BSPC: KI('KC_BSPC', LL(1, 0x06, 0x16, 0x26), ML(1, 0xE), (), (KC.GENERIC,)),
+    KC_INS:  KI('KC_INS',  LL(1, 0x07, 0x17, 0x27), ML(2, 0xE), (), (KC.GENERIC,)),
+    KC_HOME: KI('KC_HOME', LL(2, 0x01, 0x11, 0x32), ML(2, 0xF), (), (KC.GENERIC,)),
+    KC_PGUP: KI('KC_PGUP', LL(2, 0x09, 0x19, 0x3A), ML(1, 0xF), (), (KC.GENERIC,)),
+    KC_NLCK: KI('KC_NLCK', LL(2, 0x0A, 0x1A, 0x2A), ML(6, 0xA), (), (KC.GENERIC,)),
+    KC_PSLS: KI('KC_PSLS', LL(2, 0x0B, 0x1B, 0x2B), ML(6, 0x9), (), (KC.GENERIC,)),
+    KC_PAST: KI('KC_PAST', LL(2, 0x0C, 0x1C, 0x2C), ML(6, 0x8), (), (KC.GENERIC,)),
+    KC_PMNS: KI('KC_PMNS', LL(2, 0x0D, 0x1D, 0x2D), ML(6, 0x7), (), (KC.GENERIC,)),
 
-    KC_TAB:  ('KC_TAB',  (0, 0x80, 0x70, 0x60), (2, 0x0)),
-    KC_Q:    ('KC_Q',    (0, 0x81, 0x71, 0x61), (2, 0x1)),
-    KC_W:    ('KC_W',    (0, 0x82, 0x72, 0x62), (2, 0x2)),
-    KC_E:    ('KC_E',    (0, 0x83, 0x73, 0x63), (2, 0x3)),
-    KC_R:    ('KC_R',    (0, 0x84, 0x74, 0x64), (2, 0x4)),
-    KC_T:    ('KC_T',    (0, 0x85, 0x75, 0x65), (2, 0x5)),
-    KC_Y:    ('KC_Y',    (0, 0x86, 0x76, 0x55), (2, 0x6)),
-    KC_U:    ('KC_U',    (0, 0x87, 0x66, 0x56), (2, 0x7)),
-    KC_I:    ('KC_I',    (1, 0x88, 0x78, 0x68), (2, 0x8)),
-    KC_O:    ('KC_O',    (1, 0x89, 0x79, 0x69), (2, 0x9)),
-    KC_P:    ('KC_P',    (1, 0x8A, 0x7A, 0x6A), (2, 0xA)),
-    KC_LBRC: ('KC_LBRC', (1, 0x8B, 0x7B, 0x6B), (2, 0xB)),
-    KC_RBRC: ('KC_RBRC', (1, 0x8C, 0x7C, 0x6C), (2, 0xC)),
-    KC_BSLS: ('KC_BSLS', (1, 0x8D, 0x7D, 0x6D), (2, 0xD)),
-    KC_DEL:  ('KC_DEL',  (1, 0x8E, 0x7E, 0x5D), (3, 0xD)),
-    KC_END:  ('KC_END',  (1, 0x8F, 0x6E, 0x5E), (3, 0xE)),
-    KC_PGDN: ('KC_PGDN', (2, 0x08, 0x29, 0x39), (3, 0xF)),
-    KC_KP_7: ('KC_KP_7', (2, 0x8E, 0x7E, 0x5D), (7, 0xA)),
-    KC_KP_8: ('KC_KP_8', (2, 0x8F, 0x6E, 0x5E), (7, 0x9)),
-    KC_KP_9: ('KC_KP_9', (2, 0x0F, 0x1F, 0x2F), (7, 0x8)),
-    KC_PPLS: ('KC_PPLS', (2, 0x0E, 0x1E, 0x2E), (6, 0xB)),
+    KC_TAB:  KI('KC_TAB',  LL(0, 0x80, 0x70, 0x60), ML(2, 0x0), (), (KC.GENERIC,)),
+    KC_Q:    KI('KC_Q',    LL(0, 0x81, 0x71, 0x61), ML(2, 0x1), (), (KC.GENERIC,)),
+    KC_W:    KI('KC_W',    LL(0, 0x82, 0x72, 0x62), ML(2, 0x2), (), (KC.GENERIC,)),
+    KC_E:    KI('KC_E',    LL(0, 0x83, 0x73, 0x63), ML(2, 0x3), (), (KC.GENERIC,)),
+    KC_R:    KI('KC_R',    LL(0, 0x84, 0x74, 0x64), ML(2, 0x4), (), (KC.GENERIC,)),
+    KC_T:    KI('KC_T',    LL(0, 0x85, 0x75, 0x65), ML(2, 0x5), (), (KC.GENERIC,)),
+    KC_Y:    KI('KC_Y',    LL(0, 0x86, 0x76, 0x55), ML(2, 0x6), (), (KC.GENERIC,)),
+    KC_U:    KI('KC_U',    LL(0, 0x87, 0x66, 0x56), ML(2, 0x7), (), (KC.GENERIC,)),
+    KC_I:    KI('KC_I',    LL(1, 0x88, 0x78, 0x68), ML(2, 0x8), (), (KC.GENERIC,)),
+    KC_O:    KI('KC_O',    LL(1, 0x89, 0x79, 0x69), ML(2, 0x9), (), (KC.GENERIC,)),
+    KC_P:    KI('KC_P',    LL(1, 0x8A, 0x7A, 0x6A), ML(2, 0xA), (), (KC.GENERIC,)),
+    KC_LBRC: KI('KC_LBRC', LL(1, 0x8B, 0x7B, 0x6B), ML(2, 0xB), (), (KC.GENERIC,)),
+    KC_RBRC: KI('KC_RBRC', LL(1, 0x8C, 0x7C, 0x6C), ML(2, 0xC), (), (KC.GENERIC,)),
+    KC_BSLS: KI('KC_BSLS', LL(1, 0x8D, 0x7D, 0x6D), ML(2, 0xD), (), (KC.GENERIC,)),
+    KC_DEL:  KI('KC_DEL',  LL(1, 0x8E, 0x7E, 0x5D), ML(3, 0xD), (), (KC.GENERIC,)),
+    KC_END:  KI('KC_END',  LL(1, 0x8F, 0x6E, 0x5E), ML(3, 0xE), (), (KC.GENERIC,)),
+    KC_PGDN: KI('KC_PGDN', LL(2, 0x08, 0x29, 0x39), ML(3, 0xF), (), (KC.GENERIC,)),
+    KC_KP_7: KI('KC_KP_7', LL(2, 0x8E, 0x7E, 0x5D), ML(7, 0xA), (), (KC.GENERIC,)),
+    KC_KP_8: KI('KC_KP_8', LL(2, 0x8F, 0x6E, 0x5E), ML(7, 0x9), (), (KC.GENERIC,)),
+    KC_KP_9: KI('KC_KP_9', LL(2, 0x0F, 0x1F, 0x2F), ML(7, 0x8), (), (KC.GENERIC,)),
+    KC_PPLS: KI('KC_PPLS', LL(2, 0x0E, 0x1E, 0x2E), ML(6, 0xB), (), (KC.GENERIC,)),
 
-    KC_CAPS: ('KC_CAPS', (0, 0x00, 0x21, 0x31), (3, 0x0)),  
-    KC_A:    ('KC_A',    (0, 0x01, 0x11, 0x32), (3, 0x1)),
-    KC_S:    ('KC_S',    (0, 0x02, 0x12, 0x22), (3, 0x2)),
-    KC_D:    ('KC_D',    (0, 0x03, 0x13, 0x23), (3, 0x3)),
-    KC_F:    ('KC_F',    (0, 0x04, 0x14, 0x24), (3, 0x4)),
-    KC_G:    ('KC_G',    (0, 0x05, 0x15, 0x25), (3, 0x5)),
-    KC_H:    ('KC_H',    (0, 0x06, 0x16, 0x26), (3, 0x6)),
-    KC_J:    ('KC_J',    (0, 0x07, 0x17, 0x27), (3, 0x7)),
-    KC_K:    ('KC_K',    (1, 0x08, 0x29, 0x39), (3, 0x8)),
-    KC_L:    ('KC_L',    (1, 0x09, 0x19, 0x3A), (3, 0x9)),
-    KC_SCLN: ('KC_SCLN', (1, 0x0A, 0x1A, 0x2A), (3, 0xA)),
-    KC_QUOT: ('KC_QUOT', (1, 0x0B, 0x1B, 0x2B), (3, 0xB)),
-    KC_ENT:  ('KC_ENT',  (1, 0x0D, 0x1D, 0x2D), (4, 0xE)),
-    KC_KP_4: ('KC_KP_4', (2, 0x8B, 0x7B, 0x6B), (7, 0xE)),
-    KC_KP_5: ('KC_KP_5', (2, 0x8C, 0x7C, 0x6C), (7, 0xD)),
-    KC_KP_6: ('KC_KP_6', (2, 0x8D, 0x7D, 0x6D), (7, 0xC)),
+    KC_CAPS: KI('KC_CAPS', LL(0, 0x00, 0x21, 0x31), ML(3, 0x0), (), (KC.GENERIC,)),  
+    KC_A:    KI('KC_A',    LL(0, 0x01, 0x11, 0x32), ML(3, 0x1), (), (KC.GENERIC,)),
+    KC_S:    KI('KC_S',    LL(0, 0x02, 0x12, 0x22), ML(3, 0x2), (), (KC.GENERIC,)),
+    KC_D:    KI('KC_D',    LL(0, 0x03, 0x13, 0x23), ML(3, 0x3), (), (KC.GENERIC,)),
+    KC_F:    KI('KC_F',    LL(0, 0x04, 0x14, 0x24), ML(3, 0x4), (), (KC.GENERIC,)),
+    KC_G:    KI('KC_G',    LL(0, 0x05, 0x15, 0x25), ML(3, 0x5), (), (KC.GENERIC,)),
+    KC_H:    KI('KC_H',    LL(0, 0x06, 0x16, 0x26), ML(3, 0x6), (), (KC.GENERIC,)),
+    KC_J:    KI('KC_J',    LL(0, 0x07, 0x17, 0x27), ML(3, 0x7), (), (KC.GENERIC,)),
+    KC_K:    KI('KC_K',    LL(1, 0x08, 0x29, 0x39), ML(3, 0x8), (), (KC.GENERIC,)),
+    KC_L:    KI('KC_L',    LL(1, 0x09, 0x19, 0x3A), ML(3, 0x9), (), (KC.GENERIC,)),
+    KC_SCLN: KI('KC_SCLN', LL(1, 0x0A, 0x1A, 0x2A), ML(3, 0xA), (), (KC.GENERIC,)),
+    KC_QUOT: KI('KC_QUOT', LL(1, 0x0B, 0x1B, 0x2B), ML(3, 0xB), (), (KC.GENERIC,)),
+    KC_ENT:  KI('KC_ENT',  LL(1, 0x0D, 0x1D, 0x2D), ML(4, 0xE), (), (KC.GENERIC,)),
+    KC_KP_4: KI('KC_KP_4', LL(2, 0x8B, 0x7B, 0x6B), ML(7, 0xE), (), (KC.GENERIC,)),
+    KC_KP_5: KI('KC_KP_5', LL(2, 0x8C, 0x7C, 0x6C), ML(7, 0xD), (), (KC.GENERIC,)),
+    KC_KP_6: KI('KC_KP_6', LL(2, 0x8D, 0x7D, 0x6D), ML(7, 0xC), (), (KC.GENERIC,)),
 
-    KC_LSFT: ('KC_LSFT', (0, 0x88, 0x78, 0x68), (4, 0x0)),  
-    KC_Z:    ('KC_Z',    (0, 0x8A, 0x7A, 0x6A), (4, 0x2)),
-    KC_X:    ('KC_X',    (0, 0x8B, 0x7B, 0x6B), (4, 0x3)),
-    KC_C:    ('KC_C',    (0, 0x8C, 0x7C, 0x6C), (4, 0x4)),
-    KC_V:    ('KC_V',    (0, 0x8D, 0x7D, 0x6D), (4, 0x5)),
-    KC_B:    ('KC_B',    (0, 0x8E, 0x7E, 0x5D), (4, 0x6)),
-    KC_N:    ('KC_N',    (0, 0x8F, 0x6E, 0x5E), (4, 0x7)),
-    KC_M:    ('KC_M',    (2, 0x80, 0x70, 0x60), (4, 0x8)),
-    KC_COMM: ('KC_COMM', (2, 0x81, 0x71, 0x61), (4, 0x9)),
-    KC_DOT:  ('KC_DOT',  (2, 0x82, 0x72, 0x62), (4, 0xA)),
-    KC_SLSH: ('KC_SLSH', (2, 0x83, 0x73, 0x63), (4, 0xB)),
-    KC_RSFT: ('KC_RSFT', (1, 0x0F, 0x1F, 0x2F), (4, 0xD)),
-    KC_UP:   ('KC_UP',   (2, 0x07, 0x17, 0x27), (4, 0xF)),
-    KC_KP_1: ('KC_KP_1', (2, 0x88, 0x78, 0x68), (6, 0xE)),
-    KC_KP_2: ('KC_KP_2', (2, 0x89, 0x79, 0x69), (6, 0xD)),
-    KC_KP_3: ('KC_KP_3', (2, 0x8A, 0x7A, 0x6A), (6, 0xC)),
-    KC_PENT: ('KC_PENT', (2, 0x02, 0x12, 0x22), (7, 0xB)),
+    KC_LSFT: KI('KC_LSFT', LL(0, 0x88, 0x78, 0x68), ML(4, 0x0), (), (KC.GENERIC,)),  
+    KC_Z:    KI('KC_Z',    LL(0, 0x8A, 0x7A, 0x6A), ML(4, 0x2), (), (KC.GENERIC,)),
+    KC_X:    KI('KC_X',    LL(0, 0x8B, 0x7B, 0x6B), ML(4, 0x3), (), (KC.GENERIC,)),
+    KC_C:    KI('KC_C',    LL(0, 0x8C, 0x7C, 0x6C), ML(4, 0x4), (), (KC.GENERIC,)),
+    KC_V:    KI('KC_V',    LL(0, 0x8D, 0x7D, 0x6D), ML(4, 0x5), (), (KC.GENERIC,)),
+    KC_B:    KI('KC_B',    LL(0, 0x8E, 0x7E, 0x5D), ML(4, 0x6), (), (KC.GENERIC,)),
+    KC_N:    KI('KC_N',    LL(0, 0x8F, 0x6E, 0x5E), ML(4, 0x7), (), (KC.GENERIC,)),
+    KC_M:    KI('KC_M',    LL(2, 0x80, 0x70, 0x60), ML(4, 0x8), (), (KC.GENERIC,)),
+    KC_COMM: KI('KC_COMM', LL(2, 0x81, 0x71, 0x61), ML(4, 0x9), (), (KC.GENERIC,)),
+    KC_DOT:  KI('KC_DOT',  LL(2, 0x82, 0x72, 0x62), ML(4, 0xA), (), (KC.GENERIC,)),
+    KC_SLSH: KI('KC_SLSH', LL(2, 0x83, 0x73, 0x63), ML(4, 0xB), (), (KC.GENERIC,)),
+    KC_RSFT: KI('KC_RSFT', LL(1, 0x0F, 0x1F, 0x2F), ML(4, 0xD), (), (KC.GENERIC,)),
+    KC_UP:   KI('KC_UP',   LL(2, 0x07, 0x17, 0x27), ML(4, 0xF), (), (KC.GENERIC,)),
+    KC_KP_1: KI('KC_KP_1', LL(2, 0x88, 0x78, 0x68), ML(6, 0xE), (), (KC.GENERIC,)),
+    KC_KP_2: KI('KC_KP_2', LL(2, 0x89, 0x79, 0x69), ML(6, 0xD), (), (KC.GENERIC,)),
+    KC_KP_3: KI('KC_KP_3', LL(2, 0x8A, 0x7A, 0x6A), ML(6, 0xC), (), (KC.GENERIC,)),
+    KC_PENT: KI('KC_PENT', LL(2, 0x02, 0x12, 0x22), ML(7, 0xB), (), (KC.GENERIC,)),
 
-    KC_LCTL: ('KC_LCTL', (0, 0x08, 0x29, 0x39), (5, 0x0)),  
-    KC_LGUI: ('KC_LGUI', (0, 0x09, 0x19, 0x3A), (5, 0x1)),
-    KC_LALT: ('KC_LALT', (0, 0x0A, 0x1A, 0x2A), (5, 0x2)),
-    KC_SPC:  ('KC_SPC',  (0, 0x0C, 0x1C, 0x2C), (5, 0x6)),
-    KC_RALT: ('KC_RALT', (0, 0x0F, 0x1F, 0x2F), (5, 0xA)),
-    KC_FN0:  ('KC_FN0',  (2, 0x84, 0x74, 0x64), (5, 0xB)),
-    KC_APP:  ('KC_APP',  (2, 0x85, 0x75, 0x65), (5, 0xC)),
-    KC_RCTL: ('KC_RCTL', (2, 0x86, 0x76, 0x55), (5, 0xD)),
-    KC_LEFT: ('KC_LEFT', (2, 0x87, 0x66, 0x56), (5, 0xE)),
-    KC_DOWN: ('KC_DOWN', (2, 0x06, 0x16, 0x26), (5, 0xF)),
-    KC_RGHT: ('KC_RGHT', (2, 0x05, 0x15, 0x25), (6, 0xF)),
-    KC_KP_0: ('KC_KP_0', (2, 0x04, 0x14, 0x24), (7, 0xF)),
-    KC_PDOT: ('KC_PDOT', (2, 0x03, 0x13, 0x23), (7, 0x7)),
+    KC_LCTL: KI('KC_LCTL', LL(0, 0x08, 0x29, 0x39), ML(5, 0x0), (), (KC.GENERIC,)),  
+    KC_LGUI: KI('KC_LGUI', LL(0, 0x09, 0x19, 0x3A), ML(5, 0x1), (), (KC.GENERIC,)),
+    KC_LALT: KI('KC_LALT', LL(0, 0x0A, 0x1A, 0x2A), ML(5, 0x2), (), (KC.GENERIC,)),
+    KC_SPC:  KI('KC_SPC',  LL(0, 0x0C, 0x1C, 0x2C), ML(5, 0x6), (), (KC.GENERIC,)),
+    KC_RALT: KI('KC_RALT', LL(0, 0x0F, 0x1F, 0x2F), ML(5, 0xA), (), (KC.GENERIC,)),
+    KC_FN0:  KI('KC_FN0',  LL(2, 0x84, 0x74, 0x64), ML(5, 0xB), (), (KC.GENERIC,)),
+    KC_APP:  KI('KC_APP',  LL(2, 0x85, 0x75, 0x65), ML(5, 0xC), (), (KC.GENERIC,)),
+    KC_RCTL: KI('KC_RCTL', LL(2, 0x86, 0x76, 0x55), ML(5, 0xD), (), (KC.GENERIC,)),
+    KC_LEFT: KI('KC_LEFT', LL(2, 0x87, 0x66, 0x56), ML(5, 0xE), (), (KC.GENERIC,)),
+    KC_DOWN: KI('KC_DOWN', LL(2, 0x06, 0x16, 0x26), ML(5, 0xF), (), (KC.GENERIC,)),
+    KC_RGHT: KI('KC_RGHT', LL(2, 0x05, 0x15, 0x25), ML(6, 0xF), (), (KC.GENERIC,)),
+    KC_KP_0: KI('KC_KP_0', LL(2, 0x04, 0x14, 0x24), ML(7, 0xF), (), (KC.GENERIC,)),
+    KC_PDOT: KI('KC_PDOT', LL(2, 0x03, 0x13, 0x23), ML(7, 0x7), (), (KC.GENERIC,)),
 
-    KC_NO:   ('KC_NO',   (0, 0xFF, 0xFF, 0xFF), (7, 0x0)),
+    KC_NO:   KI('KC_NO',   LL(0, 0xFF, 0xFF, 0xFF), ML(7, 0x0), (), (KC.GENERIC,)),
 }
 
 
-index_to_keycode = [0] * 105
+index_to_keycode = [[0] * 105 for i in range(2)]
+index_to_keycode_class = [[KC.GENERIC] * 105 for i in range(2)]
 keycode_to_index = [105] * 256  # 104 = KC_NO
 matrix_to_index = [[105] * 16 for _ in range(8)]  # 104 = KC_NO
-index_to_matrix = [(7, 0)] * 105  # (7, 0) is not mapped
-index_to_led = [(0, 0xFF, 0xFF, 0xFF)] * 105  # (0, 0xFF, 0xFF, 0xFF) is not mapped
+index_to_matrix = [ML(7, 0)] * 105  # (7, 0) is not mapped
+index_to_led = [LL(0, 0xFF, 0xFF, 0xFF)] * 105  # (0, 0xFF, 0xFF, 0xFF) is not mapped
 keycodes = {}
 for i, keycode in enumerate(key_info):
-    kc_name, led, loc = key_info[keycode]
-    index_to_keycode[i] = keycode
+    ki = key_info[keycode]
+    index_to_keycode[0][i] = keycode
+    for li, lk in enumerate(ki.additional_layers, 1):
+        index_to_keycode[li][i] = lk
+    for ci, kc in enumerate(ki.keycode_classes):
+        index_to_keycode_class[ci][i] = kc
     keycode_to_index[keycode] = i
-    matrix_to_index[loc[0]][loc[1]] = i
-    index_to_matrix[i] = loc
-    index_to_led[i] = led
-    keycodes[kc_name] = keycode
+    matrix_to_index[ki.matrix_location.r][ki.matrix_location.c] = i
+    index_to_matrix[i] = ki.matrix_location
+    index_to_led[i] = ki.led_location
+    keycodes[ki.keycode_name] = keycode
 
 
 with open('src/gen.h', 'w') as f:
@@ -321,10 +367,16 @@ with open('src/gen.h', 'w') as f:
     for name, kc in keycodes.items():
         f.write(f'#define {name} 0x{kc:02X}\n')
     f.write('\n')
+    f.write('#define KCLASS_GENERIC 0\n#define KCLASS_CONSUMER 1\n\n')
     f.write('struct matrix_loc_t { uint8_t r; uint8_t c; };\n\n')
     f.write('struct led_loc_t { uint8_t driver; uint8_t r; uint8_t g; uint8_t b; };\n\n')
-    f.write('const uint8_t indexToKeycode[105] = {\n')
-    f.write(f'    {", ".join([f"0x{kc:02X}" for kc in index_to_keycode])}\n')
+    f.write(f'const uint8_t indexToKeycode[{len(index_to_keycode)}][105] = {{\n')
+    for layer in index_to_keycode:
+        f.write(f'    {{ {", ".join([f"0x{kc:02X}" for kc in layer])} }},\n')
+    f.write('};\n\n')
+    f.write(f'const uint8_t indexToKeycodeClass[{len(index_to_keycode_class)}][105] = {{\n')
+    for layer in index_to_keycode_class:
+        f.write(f'    {{ {", ".join(["KCLASS_GENERIC" if kc == KC.GENERIC else "KCLASS_CONSUMER" for kc in layer])} }},\n')
     f.write('};\n\n')
     f.write('const uint8_t keycodeToIndex[256] = {\n')
     f.write(f'    {", ".join([f"{idx}" for idx in keycode_to_index])}\n')
@@ -334,10 +386,10 @@ with open('src/gen.h', 'w') as f:
         f.write(f'    {{ {", ".join([f"{c}" for c in r])} }},\n')
     f.write('};\n\n')
     f.write('const matrix_loc_t indexToMatrix[105] = {\n')
-    f.write(f'    {", ".join(f"{{ 0x{r:02X}, 0x{c:02X} }}" for r, c in index_to_matrix)}\n')
+    f.write(f'    {", ".join(f"{{ 0x{ml.r:02X}, 0x{ml.c:02X} }}" for ml in index_to_matrix)}\n')
     f.write('};\n\n')
     f.write('const led_loc_t indexToLed[105] = {\n')
-    f.write(f'    {", ".join(f"{{ 0x{d:02X}, 0x{r:02X}, 0x{g:02X}, 0x{b:02X} }}" for d, r, g, b in index_to_led)}\n')
+    f.write(f'    {", ".join(f"{{ 0x{ll.d:02X}, 0x{ll.r:02X}, 0x{ll.g:02X}, 0x{ll.b:02X} }}" for ll in index_to_led)}\n')
     f.write('};\n\n')
 
 

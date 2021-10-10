@@ -1,6 +1,8 @@
 #include "IS31FL3731.h"
 
 bool IS31FL3731::init() {
+    i2c.frequency(400000);
+
     uint8_t i;
     for (i = 0; i < 4; i++)
         writeRegister8(i, ISSI_BANK_FUNCTIONREG, ISSI_REG_SHUTDOWN, 0x00);
@@ -34,9 +36,9 @@ void IS31FL3731::clear(uint8_t driver) {
     }
 }
 
-void IS31FL3731::setLEDPWM(uint8_t driver, uint8_t lednum, uint8_t pwm, uint8_t bank) {
+void IS31FL3731::setLEDPWM(uint8_t driver, uint8_t lednum, uint8_t pwm, bool toBuffer) {
     if (lednum >= 144) return;
-    writeRegister8(driver, bank, 0x24+lednum, pwm);
+    writeRegister8(driver, toBuffer ? (activeFrame == 0 ? 1 : 0) : activeFrame, 0x24+lednum, pwm);
 }
 
 void IS31FL3731::displayFrame(uint8_t driver, uint8_t f) {
@@ -63,12 +65,4 @@ void IS31FL3731::writeBytes(uint8_t address, uint8_t reg, uint8_t len, uint8_t *
         i2c.write(data[i]);
     }
     i2c.stop();
-}
-
-void IS31FL3731::displayFrame(uint8_t frame) {
-    if (frame > 7)
-        frame = 0;
-    for (unsigned char address : addresses) {
-        writeRegister8(address, ISSI_BANK_FUNCTIONREG, ISSI_REG_PICTUREFRAME, frame);
-    }
 }
