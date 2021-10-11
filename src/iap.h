@@ -20,7 +20,7 @@
 #include <mbed.h>
 
 /* Pointer to IAP function. */
-#define IAP_ENTRY_ADDR			                        0x1FFF1FF1
+#define IAP_LOCATION			                        0x1fff1ff1
 
 /* IAP commands. */
 #define IAP_CMD_FLASH_PREP_SEC		                    50
@@ -58,6 +58,8 @@
 #define IAP_STATUS_STOP_BIT			                    18
 #define IAP_STATUS_CODE_READ_PROTECTION_ENABLED			19
 
+typedef void (*IAP_func)(unsigned int[], unsigned int[]);
+
 class IAP {
 public:
     static void invokeIsp() {
@@ -67,10 +69,12 @@ public:
 
 private:
     static unsigned int iap_cmd(unsigned int cmd[5]) {
-        unsigned int status[5];
-        __disable_irq();
-        ((void (*)(unsigned int[], unsigned int[]))IAP_ENTRY_ADDR)(cmd, status);
-        __enable_irq();
+        auto iap_entry = (IAP_func)IAP_LOCATION;
+
+        unsigned int status[4];
+//        __disable_irq();
+        iap_entry(cmd, status);
+//        __enable_irq();
         return status[0];
     }
 };

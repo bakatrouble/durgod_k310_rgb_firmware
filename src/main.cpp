@@ -24,17 +24,18 @@ BusIn rows(rowPins[0], rowPins[1], rowPins[2], rowPins[3], rowPins[4], rowPins[5
 static bool pressedKeys[105];
 static bool changedClasses[2];
 static bool winLocked = false, ledsEnabled = true;
+static Color ledColor = { 0xFF, 0xFF, 0xFF };
 
-void enableLed(uint8_t idx) {
-    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].r, 0xFF, false);
-    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].g, 0xFF, false);
-    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].b, 0xFF, false);
+void enableLed(uint8_t idx, bool toBuffer = false) {
+    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].r, ledColor.r, toBuffer);
+    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].g, ledColor.g, toBuffer);
+    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].b, ledColor.b, toBuffer);
 }
 
-void disableLed(uint8_t idx) {
-    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].r, 0, false);
-    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].g, 0, false);
-    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].b, 0, false);
+void disableLed(uint8_t idx, bool toBuffer = false) {
+    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].r, 0, toBuffer);
+    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].g, 0, toBuffer);
+    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].b, 0, toBuffer);
 }
 
 
@@ -73,19 +74,20 @@ void initHardware() {
 
 void enableAllLeds() {
     for (auto idx : indexToLed) {
-        ledDrivers.setLEDPWM(idx.driver, idx.r, 0xFF);
-        ledDrivers.setLEDPWM(idx.driver, idx.g, 0xFF);
-        ledDrivers.setLEDPWM(idx.driver, idx.b, 0xFF);
+        ledDrivers.setLEDPWM(idx.driver, idx.r, ledColor.r);
+        ledDrivers.setLEDPWM(idx.driver, idx.g, ledColor.g);
+        ledDrivers.setLEDPWM(idx.driver, idx.b, ledColor.b);
     }
     ledDrivers.toggleFrame();
 }
 
-void disableAllLeds() {
+void disableAllLeds(bool toggleFrame = true) {
     ledDrivers.clear(0);
     ledDrivers.clear(1);
     ledDrivers.clear(2);
     ledDrivers.clear(3);
-    ledDrivers.toggleFrame();
+    if (toggleFrame)
+        ledDrivers.toggleFrame();
 }
 
 #pragma clang diagnostic push
@@ -125,20 +127,44 @@ int main() {
         led_app = kbd.statusLed;
 
         if (!kbd.vendorCommandProcessed) {
-            switch (kbd.vendorCommandData[0]) {
+            uint8_t responseLength = 0;
+            VendorResponse response {kbd.vendorCommandData[0] };
+            switch (kbd.vendorCommandData[1]) {
                 case 0x01:
                     if (ledsEnabled)
                         disableAllLeds();
                     else
                         enableAllLeds();
                     ledsEnabled = !ledsEnabled;
+                    response.data[0] = 0;
+                    response.data[1] = ledsEnabled ? 1 : 0;
+                    responseLength = 2;
+                    break;
+                case 0x02:
+                    ledsEnabled = false;
+                    disableAllLeds(false);
+                    for (uint8_t i=0; i < 104; i++) {
+                        if (kbd.vendorCommandData[2 + i / 8] & (1 << i % 8))
+                            enableLed(i, true);
+                    }
+                    ledDrivers.toggleFrame();
+                    response.data[0] = 0;
+                    responseLength = 1;
+                    break;
+                case 0x03:
+                    ledColor.r = kbd.vendorCommandData[2];
+                    ledColor.g = kbd.vendorCommandData[3];
+                    ledColor.b = kbd.vendorCommandData[4];
+                    response.data[0] = 0;
+                    responseLength = 1;
                     break;
                 case 0xFF:
+                    kbd.disconnect();
                     IAP::invokeIsp();
                     break;
             }
-            uint8_t response[] = { kbd.vendorCommandData[0] };
-            kbd.sendVendor(response, 1);
+            if (responseLength > 0)
+                kbd.sendVendor((uint8_t*)&response, responseLength + 1);
             kbd.vendorCommandProcessed = true;
         }
 

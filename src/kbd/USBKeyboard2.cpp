@@ -135,19 +135,17 @@ const uint8_t * USBKeyboard2::reportDesc() {
             COLLECTION(1), 0x01,                            // Application
                 REPORT_ID(1), REPORT_ID_VENDOR,
 
-            USAGE_MINIMUM(1), 0x00,
-            USAGE_MAXIMUM(1), 0x00,
+                USAGE_MINIMUM(1), 0x00,
+                USAGE_MAXIMUM(2), 0xFF, 0x00,
                 LOGICAL_MINIMUM(1), 0x00,
-                LOGICAL_MAXIMUM(1), 0xFF,
+                LOGICAL_MAXIMUM(2), 0xFF, 0x00,
                 REPORT_SIZE(1), 0x08,
+                REPORT_COUNT(1), 0x3F,
+                OUTPUT(1), 0x00,
 
-                REPORT_COUNT(1), 0x40,
-                USAGE(1), 0x01,
-                INPUT(1), 0x02,
-
-                REPORT_COUNT(1), 0x40,
-                USAGE(1), 0x02,
-                OUTPUT(1), 0x02,
+                USAGE_MINIMUM(1), 0x00,
+                USAGE_MAXIMUM(1), 0xFF,
+                INPUT(1), 0x00,
             END_COLLECTION(0),
             };
     reportLength = sizeof(reportDescriptor);
@@ -157,7 +155,7 @@ const uint8_t * USBKeyboard2::reportDesc() {
 
 bool USBKeyboard2::EPINT_OUT_callback() {
     uint32_t bytesRead = 0;
-    uint8_t report[65];
+    uint8_t report[0x3F];
     USBDevice::readEP(EPINT_OUT, report, &bytesRead, MAX_HID_REPORT_SIZE);
 
     if (report[0] == REPORT_ID_KEYBOARD || report[0] == REPORT_ID_NKRO) {
@@ -165,13 +163,12 @@ bool USBKeyboard2::EPINT_OUT_callback() {
     }
 
     if (report[0] == REPORT_ID_VENDOR) {
-        memcpy(vendorCommandData + 1, report + 1, 64);
+        memcpy(vendorCommandData, &report[1], 0x3F);
         vendorCommandProcessed = false;
     }
 
     statusLed = !statusLed;
 
-    sendVendor(report, 1);
 
     // We activate the endpoint to be able to recceive data
     if (!readStart(EPINT_OUT, MAX_HID_REPORT_SIZE))
@@ -313,7 +310,7 @@ void USBKeyboard2::sendVendor(uint8_t *data, uint32_t n) {
             n+1,
             { REPORT_ID_VENDOR }
     };
-    memcpy(data, report.data + 1, n);
+    memcpy(&report.data[1], data, n);
     send(&report);
 }
 

@@ -27,7 +27,7 @@ bool IS31FL3731::init() {
 }
 
 void IS31FL3731::clear(uint8_t driver) {
-    selectBank(driver, 0);
+    selectBank(driver, (activeFrame == 0 ? 1 : 0));
   
     uint8_t nemo[24] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
