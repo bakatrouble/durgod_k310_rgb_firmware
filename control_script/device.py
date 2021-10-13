@@ -17,7 +17,7 @@ class KeyboardDevice:
 
     def send_command(self, command: int, args: bytes = b'', return_response=True):
         sent_nonce = self.nonce
-        self.dev.write(REPORT_ID_VENDOR + i2b(sent_nonce) + i2b(command) + args)
+        self.dev.write(REPORT_ID_VENDOR + i2b(sent_nonce & 0xFF) + i2b(command) + args)
         self.nonce += 1
         if return_response:
             for _ in range(100):
