@@ -391,5 +391,6 @@ with open('src/gen.h', 'w') as f:
     f.write('const led_loc_t indexToLed[105] = {\n')
     f.write(f'    {", ".join(f"{{ 0x{ll.d:02X}, 0x{ll.r:02X}, 0x{ll.g:02X}, 0x{ll.b:02X} }}" for ll in index_to_led)}\n')
     f.write('};\n\n')
+    f.write(f'const uint8_t keyCount = {len(key_map)};\n\n')
 
 

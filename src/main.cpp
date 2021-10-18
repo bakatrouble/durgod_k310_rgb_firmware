@@ -1,17 +1,19 @@
 #include <USBSerial.h>
 #include <mbed.h>
+#include <modules/LEDController.h>
 #include "defines.h"
 #include "kbd/USBKeyboard2.h"
-#include "IS31FL3731/IS31FL3731.h"
 #include "gen.h"
 #include "iap.h"
+#include "defines.h"
+#include "colors.h"
 
 //USBSerial serial;
 USBKeyboard2 kbd;
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
-IS31FL3731 ledDrivers;
+static LEDController ledController;
 DigitalOut led_num(LED_NUMLOCK_PIN, 1);
 DigitalOut led_caps(LED_CAPSLOCK_PIN, 1);
 DigitalOut led_scroll(LED_SCROLLLOCK_PIN, 1);
@@ -26,18 +28,6 @@ static bool changedClasses[2];
 static bool winLocked = false, ledsEnabled = true;
 static Color ledColor = { 0xFF, 0xFF, 0xFF };
 
-void enableLed(uint8_t idx, bool toBuffer = false) {
-    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].r, ledColor.r, toBuffer);
-    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].g, ledColor.g, toBuffer);
-    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].b, ledColor.b, toBuffer);
-}
-
-void disableLed(uint8_t idx, bool toBuffer = false) {
-    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].r, 0, toBuffer);
-    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].g, 0, toBuffer);
-    ledDrivers.setLEDPWM(indexToLed[idx].driver, indexToLed[idx].b, 0, toBuffer);
-}
-
 
 bool scanKeys() {
     bool changed = false;
@@ -48,13 +38,11 @@ bool scanKeys() {
             uint8_t idx = matrixToIndex[row][col];
             if ((rows & (1 << row)) == 0) {
                 if (!pressedKeys[idx]) {
-//                    disableLed(idx);
                     pressedKeys[idx] = true;
                     changed = true;
                 }
             } else {
                 if (pressedKeys[idx]) {
-//                    enableLed(idx);
                     pressedKeys[idx] = false;
                     changed = true;
                 }
@@ -68,33 +56,17 @@ bool scanKeys() {
 void initHardware() {
     rows.mode(PullUp);
     cols = 1;
-    ledDrivers.init();
+    ledController.init();
     led_num = 0;
-}
-
-void enableAllLeds() {
-    for (auto idx : indexToLed) {
-        ledDrivers.setLEDPWM(idx.driver, idx.r, ledColor.r);
-        ledDrivers.setLEDPWM(idx.driver, idx.g, ledColor.g);
-        ledDrivers.setLEDPWM(idx.driver, idx.b, ledColor.b);
-    }
-    ledDrivers.toggleFrame();
-}
-
-void disableAllLeds(bool toggleFrame = true) {
-    ledDrivers.clear(0);
-    ledDrivers.clear(1);
-    ledDrivers.clear(2);
-    ledDrivers.clear(3);
-    if (toggleFrame)
-        ledDrivers.toggleFrame();
 }
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "EndlessLoop"
 int main() {
     initHardware();
-    enableAllLeds();
+
+    ledController.setAllKeys(ledColor);
+    ledController.toggleFrame();
 
     bool fnLayer = false;
 
@@ -103,21 +75,24 @@ int main() {
         if (changed) {
             bool fnPressed = pressedKeys[keycodeToIndex[KC_FN0]];
             if (!fnLayer && fnPressed) {
-                disableAllLeds();
-                enableLed(keycodeToIndex[KC_F1]);
-                enableLed(keycodeToIndex[KC_F2]);
-                enableLed(keycodeToIndex[KC_F3]);
-                enableLed(keycodeToIndex[KC_F4]);
-                enableLed(keycodeToIndex[KC_F5]);
-                enableLed(keycodeToIndex[KC_F6]);
-                enableLed(keycodeToIndex[KC_F7]);
+                ledController.setAllKeys(COLOR_BLACK);
+                ledController.setKeyColor(keycodeToIndex[KC_F1], ledColor);
+                ledController.setKeyColor(keycodeToIndex[KC_F2], ledColor);
+                ledController.setKeyColor(keycodeToIndex[KC_F3], ledColor);
+                ledController.setKeyColor(keycodeToIndex[KC_F4], ledColor);
+                ledController.setKeyColor(keycodeToIndex[KC_F5], ledColor);
+                ledController.setKeyColor(keycodeToIndex[KC_F6], ledColor);
+                ledController.setKeyColor(keycodeToIndex[KC_F7], ledColor);
+                ledController.toggleFrame();
                 fnLayer = true;
             }
             if (fnLayer && !fnPressed) {
-                enableAllLeds();
+                ledController.setAllKeys(ledColor);
+                ledController.toggleFrame();
                 fnLayer = false;
             }
             kbd.sendKeycodes(pressedKeys, fnLayer ? 1 : 0);
+//            testLed();
         }
 
         uint8_t lockStatus = kbd.lockStatus();
@@ -132,9 +107,10 @@ int main() {
             switch (kbd.vendorCommandData[1]) {
                 case 0x01:
                     if (ledsEnabled)
-                        disableAllLeds();
+                        ledController.setAllKeys(ledColor);
                     else
-                        enableAllLeds();
+                        ledController.setAllKeys(COLOR_BLACK);
+
                     ledsEnabled = !ledsEnabled;
                     response.data[0] = 0;
                     response.data[1] = ledsEnabled ? 1 : 0;
@@ -142,12 +118,12 @@ int main() {
                     break;
                 case 0x02:
                     ledsEnabled = false;
-                    disableAllLeds(false);
+                    ledController.setAllKeys(COLOR_BLACK);
                     for (uint8_t i=0; i < 104; i++) {
                         if (kbd.vendorCommandData[2 + i / 8] & (1 << i % 8))
-                            enableLed(i, true);
+                            ledController.setKeyColor(i, ledColor);
                     }
-                    ledDrivers.toggleFrame();
+                    ledController.toggleFrame();
                     response.data[0] = 0;
                     responseLength = 1;
                     break;
