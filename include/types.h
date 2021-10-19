@@ -27,6 +27,9 @@ struct KeyboardEvent {
 struct Settings {
     Color ledColor = COLOR_WHITE;
     bool ledsEnabled = true;
+    bool winLock = false;
+    bool keysLocked = false;
+    uint8_t brightness = 10;
 };
 
 #endif //DURGOD_K310_RGB_FIRMWARE_TYPES_H

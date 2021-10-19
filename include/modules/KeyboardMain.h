@@ -27,6 +27,9 @@ protected:
     void processEvents();
     void processPressedKeys();
     void processVendorCommand();
+    bool processCustomKeycodes();
+
+    void drawBacklight();
 
     void activateBootloader();
 

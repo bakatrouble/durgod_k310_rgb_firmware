@@ -9,6 +9,7 @@
 
 #define COLOR_BLACK colorCodes[0]
 #define COLOR_WHITE colorCodes[15]
+#define COLOR_RED colorCodes[9]
 
 const Color colorCodes[] = {
         { 0x00, 0x00, 0x00 },  // #0 Black #000000

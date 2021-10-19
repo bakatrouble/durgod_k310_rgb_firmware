@@ -24,6 +24,14 @@ struct VendorResponse {
 
 struct Color {
     uint8_t r, g, b;
+
+    Color adjustBrightness(uint8_t val) const {
+        return {
+            (uint8_t)((float)r * val / 10),
+            (uint8_t)((float)g * val / 10),
+            (uint8_t)((float)b * val / 10)
+        };
+    }
 };
 
 #endif //MBED_PLATFORMIO_DEFINES_H

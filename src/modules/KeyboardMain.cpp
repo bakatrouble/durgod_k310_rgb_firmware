@@ -55,12 +55,14 @@ void KeyboardMain::processEvents() {
         KeyboardEvent event = eventsQueue.front();
         switch (event.event) {
             case KEY_PRESSED:
-//                pressedKeys[event.arg] = true;
-                pressedKeycodes.insert(event.arg);
-                keysChanged = true;
+                if (!(settings.winLock && event.arg == KC_LGUI))
+                    pressedKeycodes.insert(event.arg);
+
+                if (!processCustomKeycodes())
+                    keysChanged = true;
+
                 break;
             case KEY_RELEASED:
-//                pressedKeys[event.arg] = false;
                 pressedKeycodes.erase(event.arg);
                 keysChanged = true;
                 break;
@@ -88,29 +90,25 @@ void KeyboardMain::processPressedKeys() {
     switch (state) {
         case NORMAL:
             if (isPressed(KC_FN)) {
-                ledController.setAllKeys(COLOR_BLACK);
-                ledController.setKeyColor(keycodeToIndex[KC_F1], settings.ledColor);
-                ledController.setKeyColor(keycodeToIndex[KC_F2], settings.ledColor);
-                ledController.setKeyColor(keycodeToIndex[KC_F3], settings.ledColor);
-                ledController.setKeyColor(keycodeToIndex[KC_F4], settings.ledColor);
-                ledController.setKeyColor(keycodeToIndex[KC_F5], settings.ledColor);
-                ledController.setKeyColor(keycodeToIndex[KC_F6], settings.ledColor);
-                ledController.setKeyColor(keycodeToIndex[KC_F7], settings.ledColor);
-                ledController.toggleFrame();
                 state = FN_MODE;
+                drawBacklight();
+                pressedKeycodes.clear();
+                pressedKeycodes.insert(KC_FN);
                 // fall through
             } else {
-                keyboardHid.sendKeycodes(pressedKeycodes);
+                if (!settings.keysLocked)
+                    keyboardHid.sendKeycodes(pressedKeycodes);
                 break;
             }
         case FN_MODE:
             if (!isPressed(KC_FN)) {
                 state = NORMAL;
-                ledController.setAllKeys(settings.ledColor);
-                ledController.toggleFrame();
+                drawBacklight();
+                pressedKeycodes.clear();
                 break;
             }
-            keyboardHid.sendKeycodes(pressedKeycodes);
+            if (!settings.keysLocked)
+                keyboardHid.sendKeycodes(pressedKeycodes);
             break;
     }
 }
@@ -156,10 +154,85 @@ void KeyboardMain::processVendorCommand() {
         keyboardHid.sendVendor((uint8_t*)&response, responseLength + 1);
 }
 
+bool KeyboardMain::processCustomKeycodes() {
+    if (pressedKeycodes.count(KC_BOOTLOADER1) > 0 && pressedKeycodes.contains(KC_BOOTLOADER2) > 0) {
+        activateBootloader();
+        return true;
+    }
+    if (pressedKeycodes.count(KC_BACKLIGHT_DISABLE) > 0) {
+        settings.ledsEnabled = false;
+        drawBacklight();
+        return true;
+    }
+    if (pressedKeycodes.count(KC_BACKLIGHT_ENABLE) > 0) {
+        settings.ledsEnabled = true;
+        drawBacklight();
+        return true;
+    }
+    if (pressedKeycodes.count(KC_WIN_LOCK) > 0) {
+        settings.winLock = !settings.winLock;
+        led_lock = !settings.winLock;
+        return true;
+    }
+    if (pressedKeycodes.count(KC_KEYBOARD_LOCK) > 0) {
+        settings.keysLocked = !settings.keysLocked;
+        led_app = !settings.keysLocked;
+        return true;
+    }
+    if (pressedKeycodes.count(KC_BACKLIGHT_BRDOWN) > 0) {
+        if (settings.brightness > 1)
+            settings.brightness--;
+        drawBacklight();
+        return true;
+    }
+    if (pressedKeycodes.count(KC_BACKLIGHT_BRUP) > 0) {
+        if (settings.brightness < 10)
+            settings.brightness++;
+        drawBacklight();
+        return true;
+    }
+    return false;
+}
+
+void KeyboardMain::drawBacklight() {
+    ledController.setAllKeys(COLOR_BLACK);
+    if (settings.ledsEnabled) {
+        Color color = settings.ledColor.adjustBrightness(settings.brightness);
+
+        switch (state) {
+        case NORMAL:
+            ledController.setAllKeys(color);
+            break;
+        case FN_MODE:
+            Color redColor = COLOR_RED;
+            redColor = redColor.adjustBrightness(settings.brightness);
+
+            ledController.setKeyColor(keycodeToIndex[KC_F1], color);
+            ledController.setKeyColor(keycodeToIndex[KC_F2], color);
+            ledController.setKeyColor(keycodeToIndex[KC_F3], color);
+            ledController.setKeyColor(keycodeToIndex[KC_F4], color);
+            ledController.setKeyColor(keycodeToIndex[KC_F5], color);
+            ledController.setKeyColor(keycodeToIndex[KC_F6], color);
+            ledController.setKeyColor(keycodeToIndex[KC_F7], color);
+            ledController.setKeyColor(keycodeToIndex[KC_LGUI], color);
+            ledController.setKeyColor(keycodeToIndex[KC_INSERT], color);
+            ledController.setKeyColor(keycodeToIndex[KC_DELETE], color);
+            ledController.setKeyColor(keycodeToIndex[KC_F12], color);
+            ledController.setKeyColor(keycodeToIndex[KC_UP], color);
+            ledController.setKeyColor(keycodeToIndex[KC_DOWN], color);
+            ledController.setKeyColor(keycodeToIndex[KC_B], redColor);
+            ledController.setKeyColor(keycodeToIndex[KC_L], redColor);
+            break;
+        }
+    }
+    ledController.toggleFrame();
+}
+
 void KeyboardMain::activateBootloader() {
     keyboardHid.disconnect();
-    ledController.setAllKeys({ 0xFF, 0, 0 });
+    ledController.setAllKeys(COLOR_RED);
     ledController.toggleFrame();
+    led_num = led_caps = led_scroll = led_lock = led_app = 0;
     IAP::invokeIsp();
 }
 

@@ -202,6 +202,7 @@ KC_BACKLIGHT_ENABLE = 0x207
 KC_BACKLIGHT_BRDOWN = 0x208
 KC_BACKLIGHT_BRUP = 0x209
 KC_WIN_LOCK = 0x20A
+KC_KEYBOARD_LOCK = 0x20B
 
 
 all_keycodes = {
@@ -279,6 +280,7 @@ all_keycodes = {
     'KC_INSERT': KC_INSERT,
     'KC_HOME': KC_HOME,
     'KC_PGUP': KC_PGUP,
+    'KC_DELETE': KC_DELETE,
     'KC_PGDOWN': KC_PGDOWN,
     'KC_RIGHT': KC_RIGHT,
     'KC_LEFT': KC_LEFT,
@@ -392,6 +394,7 @@ all_keycodes = {
     'KC_BACKLIGHT_BRDOWN': KC_BACKLIGHT_BRDOWN,
     'KC_BACKLIGHT_BRUP': KC_BACKLIGHT_BRUP,
     'KC_WIN_LOCK': KC_WIN_LOCK,
+    'KC_KEYBOARD_LOCK': KC_KEYBOARD_LOCK,
 }
 
 key_map = [
@@ -443,7 +446,7 @@ key_info = {
     KC_F9:   KI('KC_F9',   LL(1, 0x81, 0x71, 0x61), ML(0, 0x9), ()),
     KC_F10:  KI('KC_F10',  LL(1, 0x82, 0x72, 0x62), ML(0, 0xA), ()),
     KC_F11:  KI('KC_F11',  LL(1, 0x83, 0x73, 0x63), ML(0, 0xB), ()),
-    KC_F12:  KI('KC_F12',  LL(1, 0x84, 0x74, 0x64), ML(0, 0xC), ()),
+    KC_F12:  KI('KC_F12',  LL(1, 0x84, 0x74, 0x64), ML(0, 0xC), (KC_KEYBOARD_LOCK,)),
     KC_PSCR: KI('KC_PSCR', LL(1, 0x85, 0x75, 0x65), ML(0, 0xD), ()),
     KC_SLCK: KI('KC_SLCK', LL(1, 0x86, 0x76, 0x55), ML(0, 0xE), ()),
     KC_PAUS: KI('KC_PAUS', LL(1, 0x87, 0x66, 0x56), ML(0, 0xF), ()),
