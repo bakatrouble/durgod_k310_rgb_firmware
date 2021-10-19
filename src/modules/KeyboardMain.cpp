@@ -3,8 +3,8 @@
 //
 
 #include <iap.h>
-#include "KeyboardMain.h"
-#include "gen.h"
+#include "modules/KeyboardMain.h"
+#include "layout.h"
 
 void KeyboardMain::init() {
     // init hardware
@@ -56,12 +56,10 @@ void KeyboardMain::processEvents() {
         switch (event.event) {
             case KEY_PRESSED:
                 pressedKeys[event.arg] = true;
-//                led_app = !led_app;
                 keysChanged = true;
                 break;
             case KEY_RELEASED:
                 pressedKeys[event.arg] = false;
-//                led_app = !led_app;
                 keysChanged = true;
                 break;
             case VENDOR_COMMAND_RECEIVED:
@@ -87,7 +85,7 @@ void KeyboardMain::hidCallback(EventType event, uint8_t arg) {
 void KeyboardMain::processPressedKeys() {
     switch (state) {
         case NORMAL:
-            if (isPressed(KC_FN0)) {
+            if (isPressed(KC_FN)) {
                 ledController.setAllKeys(COLOR_BLACK);
                 ledController.setKeyColor(keycodeToIndex[KC_F1], settings.ledColor);
                 ledController.setKeyColor(keycodeToIndex[KC_F2], settings.ledColor);
@@ -104,8 +102,10 @@ void KeyboardMain::processPressedKeys() {
                 break;
             }
         case FN_MODE:
-            if (!isPressed(KC_FN0)) {
+            if (!isPressed(KC_FN)) {
                 state = NORMAL;
+                ledController.setAllKeys(settings.ledColor);
+                ledController.toggleFrame();
                 break;
             }
             keyboardHid.sendKeycodes(pressedKeys, 1);

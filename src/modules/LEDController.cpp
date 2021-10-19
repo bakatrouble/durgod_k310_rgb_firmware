@@ -2,8 +2,8 @@
 // Created by bakatrouble on 18/10/2021.
 //
 
-#include "LEDController.h"
-#include "gen.h"
+#include "modules/LEDController.h"
+#include "layout.h"
 
 void LEDController::init() {
     i2c.frequency(400000);

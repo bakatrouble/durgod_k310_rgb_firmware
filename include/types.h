@@ -21,7 +21,7 @@ enum State {
 
 struct KeyboardEvent {
     EventType event;
-    uint8_t arg = 0;
+    uint16_t arg = 0;
 };
 
 struct Settings {

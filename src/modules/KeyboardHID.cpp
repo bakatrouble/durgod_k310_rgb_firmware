@@ -2,9 +2,9 @@
 // Created by bakatrouble on 19/10/2021.
 //
 
-#include <gen.h>
-#include "KeyboardHID.h"
-#include "KeyboardMain.h"
+#include <layout.h>
+#include "modules/KeyboardHID.h"
+#include "modules/KeyboardMain.h"
 
 void KeyboardHID::init() {
     connect();
@@ -39,19 +39,19 @@ bool KeyboardHID::EP1_OUT_callback() {
 
 void KeyboardHID::sendKeycodes(bool *pressedKeys, uint8_t layer) {
     uint8_t modifiers = 0;
-    if (pressedKeys[keycodeToIndex[KC_LCTL]])
+    if (pressedKeys[keycodeToIndex[KC_LCTRL]])
         modifiers |= MODMASK_LCTRL;
     if (pressedKeys[keycodeToIndex[KC_LGUI]])
         modifiers |= MODMASK_LGUI;
     if (pressedKeys[keycodeToIndex[KC_LALT]])
         modifiers |= MODMASK_LALT;
-    if (pressedKeys[keycodeToIndex[KC_LSFT]])
+    if (pressedKeys[keycodeToIndex[KC_LSHIFT]])
         modifiers |= MODMASK_LSHIFT;
     if (pressedKeys[keycodeToIndex[KC_RALT]])
         modifiers |= MODMASK_RALT;
-    if (pressedKeys[keycodeToIndex[KC_RCTL]])
+    if (pressedKeys[keycodeToIndex[KC_RCTRL]])
         modifiers |= MODMASK_RCTRL;
-    if (pressedKeys[keycodeToIndex[KC_RSFT]])
+    if (pressedKeys[keycodeToIndex[KC_RSHIFT]])
         modifiers |= MODMASK_RSHIFT;
 
     HID_REPORT report = {
@@ -82,15 +82,15 @@ void KeyboardHID::sendKeycodes(bool *pressedKeys, uint8_t layer) {
     uint8_t ptr = 3;
     for (uint8_t idx=0; idx < 104; idx++) {
         if (pressedKeys[idx]) {
-            uint8_t keycode = indexToKeycode[layer][idx];
-            if (indexToKeycodeClass[layer][idx] == KCLASS_GENERIC) {
+            uint16_t keycode = indexToKeycode[layer][idx];
+            if (keycode < 0x100) {
                 if (ptr < 9) {
                     report.data[ptr++] = keycode;
                 } else {
                     nkroReport.data[3 + keycode / 8] |= 1 << keycode % 8;
                 }
-            } else {
-                mediaReport.data[1] = keycode;
+            } else if (keycode < 0x200) {
+                mediaReport.data[1] = keycode - 0x100;
                 send(&mediaReport);
             }
         }
