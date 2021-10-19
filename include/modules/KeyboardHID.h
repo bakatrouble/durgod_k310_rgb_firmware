@@ -6,6 +6,7 @@
 #define DURGOD_K310_RGB_FIRMWARE_KEYBOARDHID_H
 
 #include <mbed.h>
+#include <unordered_set>
 #include "USBHID.h"
 #include "Stream.h"
 #include "types.h"
@@ -225,7 +226,7 @@ public:
     void init();
     const uint8_t * reportDesc() override;
     bool EPINT_OUT_callback() override;
-    void sendKeycodes(bool *pressedKeys, uint8_t layer = 0);
+    void sendKeycodes(std::unordered_set<uint16_t> &pressedKeycodes);
     void sendVendor(uint8_t *data, uint32_t n);
     bool USBCallback_request() override;
     void setKeyboardMain(KeyboardMain *ptr);

@@ -37,21 +37,21 @@ bool KeyboardHID::EP1_OUT_callback() {
     return true;
 }
 
-void KeyboardHID::sendKeycodes(bool *pressedKeys, uint8_t layer) {
+void KeyboardHID::sendKeycodes(std::unordered_set<uint16_t> &pressedKeycodes) {
     uint8_t modifiers = 0;
-    if (pressedKeys[keycodeToIndex[KC_LCTRL]])
+    if (pressedKeycodes.count(KC_LCTRL) > 0)
         modifiers |= MODMASK_LCTRL;
-    if (pressedKeys[keycodeToIndex[KC_LGUI]])
+    if (pressedKeycodes.count(KC_LGUI) > 0)
         modifiers |= MODMASK_LGUI;
-    if (pressedKeys[keycodeToIndex[KC_LALT]])
+    if (pressedKeycodes.count(KC_LALT) > 0)
         modifiers |= MODMASK_LALT;
-    if (pressedKeys[keycodeToIndex[KC_LSHIFT]])
+    if (pressedKeycodes.count(KC_LSHIFT) > 0)
         modifiers |= MODMASK_LSHIFT;
-    if (pressedKeys[keycodeToIndex[KC_RALT]])
+    if (pressedKeycodes.count(KC_RALT) > 0)
         modifiers |= MODMASK_RALT;
-    if (pressedKeys[keycodeToIndex[KC_RCTRL]])
+    if (pressedKeycodes.count(KC_RCTRL) > 0)
         modifiers |= MODMASK_RCTRL;
-    if (pressedKeys[keycodeToIndex[KC_RSHIFT]])
+    if (pressedKeycodes.count(KC_RSHIFT) > 0)
         modifiers |= MODMASK_RSHIFT;
 
     HID_REPORT report = {
@@ -80,19 +80,16 @@ void KeyboardHID::sendKeycodes(bool *pressedKeys, uint8_t layer) {
             }
     };
     uint8_t ptr = 3;
-    for (uint8_t idx=0; idx < 104; idx++) {
-        if (pressedKeys[idx]) {
-            uint16_t keycode = indexToKeycode[layer][idx];
-            if (keycode < 0x100) {
-                if (ptr < 9) {
-                    report.data[ptr++] = keycode;
-                } else {
-                    nkroReport.data[3 + keycode / 8] |= 1 << keycode % 8;
-                }
-            } else if (keycode < 0x200) {
-                mediaReport.data[1] = keycode - 0x100;
-                send(&mediaReport);
+    for (auto keycode : pressedKeycodes) {
+        if (keycode < 0x100) {
+            if (ptr < 9) {
+                report.data[ptr++] = keycode;
+            } else {
+                nkroReport.data[3 + keycode / 8] |= 1 << keycode % 8;
             }
+        } else if (keycode < 0x200) {
+            mediaReport.data[1] = keycode - 0x100;
+            send(&mediaReport);
         }
     }
     send(&report);

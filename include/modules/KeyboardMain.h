@@ -9,6 +9,7 @@
 #include <vector>
 #include <deque>
 #include <types.h>
+#include <unordered_set>
 #include "LEDController.h"
 #include "colors.h"
 #include "KeyboardHID.h"
@@ -17,7 +18,7 @@ class KeyboardMain {
 public:
     void init();
     void loop();
-    void hidCallback(EventType event, uint8_t arg);
+    void hidCallback(EventType event, uint16_t arg);
 
 protected:
     void scanKeys();
@@ -25,7 +26,9 @@ protected:
     void processPressedKeys();
     void processVendorCommand();
 
-    bool isPressed(uint8_t keycode);
+    void activateBootloader();
+
+    bool isPressed(uint16_t keycode);
 
     LEDController ledController;
     KeyboardHID keyboardHid;
@@ -33,7 +36,8 @@ protected:
     State state = NORMAL;
     Settings settings;
     std::deque<KeyboardEvent> eventsQueue = std::deque<KeyboardEvent>(10);
-    bool pressedKeys[105];
+//    bool pressedKeys[105];
+    std::unordered_set<uint16_t> pressedKeycodes = std::unordered_set<uint16_t>(104);
 
     DigitalOut led_num = DigitalOut(LED_NUMLOCK_PIN, 1);
     DigitalOut led_caps = DigitalOut(LED_CAPSLOCK_PIN, 1);

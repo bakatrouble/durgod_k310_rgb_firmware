@@ -34,14 +34,14 @@ void KeyboardMain::scanKeys() {
         cols = ~(1 << col);
         for (row=0; row < 8; row++) {
             uint8_t idx = matrixToIndex[row][col];
+            uint16_t keycode = indexToKeycode[state == NORMAL ? 0 : 1][idx];
             if ((rows & (1 << row)) == 0) {
-                if (!pressedKeys[idx]) {
-                    eventsQueue.push_back({ EventType::KEY_PRESSED, idx });
+                if (pressedKeycodes.count(keycode) == 0) {
+                    eventsQueue.push_back({EventType::KEY_PRESSED, keycode});
                 }
             } else {
-                if (pressedKeys[idx]) {
-                    pressedKeys[idx] = false;
-                    eventsQueue.push_back({ EventType::KEY_RELEASED, idx });
+                if (pressedKeycodes.count(keycode) > 0) {
+                    eventsQueue.push_back({EventType::KEY_RELEASED, keycode});
                 }
             }
         }
@@ -55,11 +55,13 @@ void KeyboardMain::processEvents() {
         KeyboardEvent event = eventsQueue.front();
         switch (event.event) {
             case KEY_PRESSED:
-                pressedKeys[event.arg] = true;
+//                pressedKeys[event.arg] = true;
+                pressedKeycodes.insert(event.arg);
                 keysChanged = true;
                 break;
             case KEY_RELEASED:
-                pressedKeys[event.arg] = false;
+//                pressedKeys[event.arg] = false;
+                pressedKeycodes.erase(event.arg);
                 keysChanged = true;
                 break;
             case VENDOR_COMMAND_RECEIVED:
@@ -78,7 +80,7 @@ void KeyboardMain::processEvents() {
     }
 }
 
-void KeyboardMain::hidCallback(EventType event, uint8_t arg) {
+void KeyboardMain::hidCallback(EventType event, uint16_t arg) {
     eventsQueue.push_back({ event, arg });
 }
 
@@ -98,7 +100,7 @@ void KeyboardMain::processPressedKeys() {
                 state = FN_MODE;
                 // fall through
             } else {
-                keyboardHid.sendKeycodes(pressedKeys, 0);
+                keyboardHid.sendKeycodes(pressedKeycodes);
                 break;
             }
         case FN_MODE:
@@ -108,7 +110,7 @@ void KeyboardMain::processPressedKeys() {
                 ledController.toggleFrame();
                 break;
             }
-            keyboardHid.sendKeycodes(pressedKeys, 1);
+            keyboardHid.sendKeycodes(pressedKeycodes);
             break;
     }
 }
@@ -147,14 +149,20 @@ void KeyboardMain::processVendorCommand() {
             responseLength = 1;
             break;
         case 0xFF:
-            keyboardHid.disconnect();
-            IAP::invokeIsp();
+            activateBootloader();
             break;
     }
     if (responseLength > 0)
         keyboardHid.sendVendor((uint8_t*)&response, responseLength + 1);
 }
 
-bool KeyboardMain::isPressed(uint8_t keycode) {
-    return pressedKeys[keycodeToIndex[keycode]];
+void KeyboardMain::activateBootloader() {
+    keyboardHid.disconnect();
+    ledController.setAllKeys({ 0xFF, 0, 0 });
+    ledController.toggleFrame();
+    IAP::invokeIsp();
+}
+
+bool KeyboardMain::isPressed(uint16_t keycode) {
+    return pressedKeycodes.count(keycode) > 0;
 }
