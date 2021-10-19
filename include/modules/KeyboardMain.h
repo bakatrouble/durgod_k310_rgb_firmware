@@ -9,10 +9,12 @@
 #include <vector>
 #include <deque>
 #include <types.h>
-#include <unordered_set>
+#include <parallel_hashmap/phmap.h>
 #include "LEDController.h"
 #include "colors.h"
 #include "KeyboardHID.h"
+
+using phmap::flat_hash_set;
 
 class KeyboardMain {
 public:
@@ -37,7 +39,7 @@ protected:
     Settings settings;
     std::deque<KeyboardEvent> eventsQueue = std::deque<KeyboardEvent>(10);
 //    bool pressedKeys[105];
-    std::unordered_set<uint16_t> pressedKeycodes = std::unordered_set<uint16_t>(104);
+    flat_hash_set<uint16_t> pressedKeycodes = flat_hash_set<uint16_t>(104);
 
     DigitalOut led_num = DigitalOut(LED_NUMLOCK_PIN, 1);
     DigitalOut led_caps = DigitalOut(LED_CAPSLOCK_PIN, 1);

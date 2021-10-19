@@ -37,7 +37,7 @@ bool KeyboardHID::EP1_OUT_callback() {
     return true;
 }
 
-void KeyboardHID::sendKeycodes(std::unordered_set<uint16_t> &pressedKeycodes) {
+void KeyboardHID::sendKeycodes(flat_hash_set<uint16_t> &pressedKeycodes) {
     uint8_t modifiers = 0;
     if (pressedKeycodes.count(KC_LCTRL) > 0)
         modifiers |= MODMASK_LCTRL;
