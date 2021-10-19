@@ -1,19 +1,3 @@
-/*
- * Copyright (c) 2020 Seagate Technology LLC
- *
- * SPDX-License-Identifier: Apache-2.0
- */
-
-/**
- * @file Describe the IAP commands interface on NXP LPC11U6x MCUs.
- *
- * The IAP (In-Application Programming) commands are located in the boot ROM
- * code. Mostly they provide access to the on-chip flash and EEPROM devices.
- *
- * @note For details about IAP see the UM10732 LPC11U6x/E6x user manual,
- *       chapter 27: LPC11U6x/E6x Flash/EEPROM ISP/IAP programming.
- */
-
 #ifndef LPC11U3X_IAP_H_
 #define LPC11U3X_IAP_H_
 
@@ -79,4 +63,4 @@ private:
     }
 };
 
-#endif /* LPC11U3X_IAP_H_ */
+#endif

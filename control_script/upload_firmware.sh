@@ -26,7 +26,7 @@ then
 fi
 
 mkdir -p "mountpoint"
-mount /dev/$DEVICE "$(pwd)/mountpoint" -Ouser
+mount /dev/$DEVICE "$(pwd)/mountpoint"
 dd if=../.pio/build/lpc11u35/firmware.bin of="$(pwd)/mountpoint/firmware.bin" bs=1024 conv=nocreat,notrunc
 umount "$(pwd)/mountpoint"
 echo "Done"
