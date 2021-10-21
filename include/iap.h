@@ -51,14 +51,20 @@ public:
         iap_cmd(cmd);
     }
 
+    static void writeEEPROM() {
+
+    }
+
+    static void readEEPROM() {
+
+    }
+
 private:
     static unsigned int iap_cmd(unsigned int cmd[5]) {
         auto iap_entry = (IAP_func)IAP_LOCATION;
 
         unsigned int status[4];
-//        __disable_irq();
         iap_entry(cmd, status);
-//        __enable_irq();
         return status[0];
     }
 };

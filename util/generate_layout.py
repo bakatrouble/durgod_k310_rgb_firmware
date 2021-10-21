@@ -203,6 +203,7 @@ KC_BACKLIGHT_BRDOWN = 0x208
 KC_BACKLIGHT_BRUP = 0x209
 KC_WIN_LOCK = 0x20A
 KC_KEYBOARD_LOCK = 0x20B
+KC_TURBO_SELECT_MODE = 0x20C
 
 
 all_keycodes = {
@@ -395,6 +396,7 @@ all_keycodes = {
     'KC_BACKLIGHT_BRUP': KC_BACKLIGHT_BRUP,
     'KC_WIN_LOCK': KC_WIN_LOCK,
     'KC_KEYBOARD_LOCK': KC_KEYBOARD_LOCK,
+    'KC_TURBO_SELECT_MODE': KC_TURBO_SELECT_MODE,
 }
 
 key_map = [
@@ -478,7 +480,7 @@ key_info = {
     KC_W:    KI('KC_W',    LL(0, 0x82, 0x72, 0x62), ML(2, 0x2), ()),
     KC_E:    KI('KC_E',    LL(0, 0x83, 0x73, 0x63), ML(2, 0x3), ()),
     KC_R:    KI('KC_R',    LL(0, 0x84, 0x74, 0x64), ML(2, 0x4), ()),
-    KC_T:    KI('KC_T',    LL(0, 0x85, 0x75, 0x65), ML(2, 0x5), ()),
+    KC_T:    KI('KC_T',    LL(0, 0x85, 0x75, 0x65), ML(2, 0x5), (KC_TURBO_SELECT_MODE,)),
     KC_Y:    KI('KC_Y',    LL(0, 0x86, 0x76, 0x55), ML(2, 0x6), ()),
     KC_U:    KI('KC_U',    LL(0, 0x87, 0x66, 0x56), ML(2, 0x7), ()),
     KC_I:    KI('KC_I',    LL(1, 0x88, 0x78, 0x68), ML(2, 0x8), ()),

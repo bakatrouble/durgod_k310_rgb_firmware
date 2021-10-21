@@ -19,12 +19,19 @@ void KeyboardMain::init() {
     // enable backlight
     ledController.setAllKeys(settings.ledColor);
     ledController.toggleFrame();
+
+    // start timer;
+    timer.start();
 }
 
 void KeyboardMain::loop() {
     scanKeys();
     processEvents();
     wait(.005);
+    if (timer.read_ms() >= 50) { // .05s
+        runTimerEvents();
+        timer.reset();
+    }
 //    led_app = !led_app;
 }
 
@@ -33,15 +40,15 @@ void KeyboardMain::scanKeys() {
     for (col=0; col < 16; col++) {
         cols = ~(1 << col);
         for (row=0; row < 8; row++) {
-            uint8_t idx = matrixToIndex[row][col];
-            uint16_t keycode = indexToKeycode[state == NORMAL ? 0 : 1][idx];
+            auto idx = matrixToIndex[row][col];
+            auto keycode = indexToKeycode[state == FN_MODE ? 1 : 0][idx];
             if ((rows & (1 << row)) == 0) {
                 if (pressedKeycodes.count(keycode) == 0) {
-                    eventsQueue.push_back({EventType::KEY_PRESSED, keycode});
+                    eventsQueue.push_back({EventType::KEY_PRESSED, keycode, idx});
                 }
             } else {
                 if (pressedKeycodes.count(keycode) > 0) {
-                    eventsQueue.push_back({EventType::KEY_RELEASED, keycode});
+                    eventsQueue.push_back({EventType::KEY_RELEASED, keycode, idx});
                 }
             }
         }
@@ -55,12 +62,26 @@ void KeyboardMain::processEvents() {
         KeyboardEvent event = eventsQueue.front();
         switch (event.event) {
             case KEY_PRESSED:
-                if (!(settings.winLock && event.arg == KC_LGUI))
+                if (state == TURBO_SELECT) {
+                    if (event.idx == keycodeToIndex[KC_FN]) {
+                        state = NORMAL;
+                        drawBacklight();
+                        break;
+                    }
+                    if (turboKeys.count(event.idx) == 0)
+                        turboKeys.insert(event.idx);
+                    else
+                        turboKeys.erase(event.idx);
+                    drawBacklight();
                     pressedKeycodes.insert(event.arg);
-
-                if (!processCustomKeycodes())
                     keysChanged = true;
+                } else {
+                    if (!(settings.winLock && event.arg == KC_LGUI))
+                        pressedKeycodes.insert(event.arg);
 
+                    if (!processCustomKeycodes())
+                        keysChanged = true;
+                }
                 break;
             case KEY_RELEASED:
                 pressedKeycodes.erase(event.arg);
@@ -109,6 +130,8 @@ void KeyboardMain::processPressedKeys() {
             }
             if (!settings.keysLocked)
                 keyboardHid.sendKeycodes(pressedKeycodes);
+            break;
+        case TURBO_SELECT:
             break;
     }
 }
@@ -191,22 +214,41 @@ bool KeyboardMain::processCustomKeycodes() {
         drawBacklight();
         return true;
     }
+    if (pressedKeycodes.count(KC_TURBO_SELECT_MODE) > 0) {
+        state = TURBO_SELECT;
+        drawBacklight();
+        pressedKeycodes.clear();
+        pressedKeycodes.insert(KC_FN);
+        return true;
+    }
     return false;
+}
+
+void KeyboardMain::runTimerEvents() {
+    if (state == NORMAL && !turboKeys.empty()) {
+        for (auto key : turboKeys) {
+            auto keycode = indexToKeycode[0][key];
+            if (pressedKeycodes.count(keycode) == 0)
+                pressedKeycodes.insert(keycode);
+            else
+                pressedKeycodes.erase(keycode);
+            keyboardHid.sendKeycodes(pressedKeycodes);
+        }
+    }
 }
 
 void KeyboardMain::drawBacklight() {
     ledController.setAllKeys(COLOR_BLACK);
     if (settings.ledsEnabled) {
         Color color = settings.ledColor.adjustBrightness(settings.brightness);
+        Color redColor = COLOR_RED;
+        redColor = redColor.adjustBrightness(settings.brightness);
 
         switch (state) {
         case NORMAL:
             ledController.setAllKeys(color);
             break;
         case FN_MODE:
-            Color redColor = COLOR_RED;
-            redColor = redColor.adjustBrightness(settings.brightness);
-
             ledController.setKeyColor(keycodeToIndex[KC_F1], color);
             ledController.setKeyColor(keycodeToIndex[KC_F2], color);
             ledController.setKeyColor(keycodeToIndex[KC_F3], color);
@@ -214,6 +256,7 @@ void KeyboardMain::drawBacklight() {
             ledController.setKeyColor(keycodeToIndex[KC_F5], color);
             ledController.setKeyColor(keycodeToIndex[KC_F6], color);
             ledController.setKeyColor(keycodeToIndex[KC_F7], color);
+            ledController.setKeyColor(keycodeToIndex[KC_T], color);
             ledController.setKeyColor(keycodeToIndex[KC_LGUI], color);
             ledController.setKeyColor(keycodeToIndex[KC_INSERT], color);
             ledController.setKeyColor(keycodeToIndex[KC_DELETE], color);
@@ -222,6 +265,11 @@ void KeyboardMain::drawBacklight() {
             ledController.setKeyColor(keycodeToIndex[KC_DOWN], color);
             ledController.setKeyColor(keycodeToIndex[KC_B], redColor);
             ledController.setKeyColor(keycodeToIndex[KC_L], redColor);
+            break;
+        case TURBO_SELECT:
+            for (auto idx : turboKeys) {
+                ledController.setKeyColor(idx, color);
+            }
             break;
         }
     }

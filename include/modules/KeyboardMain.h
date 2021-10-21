@@ -28,6 +28,7 @@ protected:
     void processPressedKeys();
     void processVendorCommand();
     bool processCustomKeycodes();
+    void runTimerEvents();
 
     void drawBacklight();
 
@@ -37,12 +38,13 @@ protected:
 
     LEDController ledController;
     KeyboardHID keyboardHid;
+    Timer timer;
 
     State state = NORMAL;
     Settings settings;
     std::deque<KeyboardEvent> eventsQueue = std::deque<KeyboardEvent>(10);
-//    bool pressedKeys[105];
     flat_hash_set<uint16_t> pressedKeycodes = flat_hash_set<uint16_t>(104);
+    flat_hash_set<uint16_t> turboKeys = flat_hash_set<uint16_t>(104);
 
     DigitalOut led_num = DigitalOut(LED_NUMLOCK_PIN, 1);
     DigitalOut led_caps = DigitalOut(LED_CAPSLOCK_PIN, 1);

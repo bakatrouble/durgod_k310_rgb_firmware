@@ -17,11 +17,13 @@ enum EventType {
 enum State {
     NORMAL,
     FN_MODE,
+    TURBO_SELECT,
 };
 
 struct KeyboardEvent {
     EventType event;
     uint16_t arg = 0;
+    uint8_t idx = 0;
 };
 
 struct Settings {
