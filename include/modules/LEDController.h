@@ -38,10 +38,9 @@
 class LEDController {
 public:
     void init();
-    uint8_t toggleFrame();
-    void displayFrame(uint8_t frame);
-    void setKeyColor(uint8_t idx, Color color, bool inBuffer = true);
-    void setAllKeys(Color color, bool inBuffer = true);
+    void display();
+    void setKeyColor(uint8_t idx, Color color);
+    void setAllKeys(Color color);
 
 protected:
     void callFunction(uint8_t functionId, uint8_t arg);
@@ -51,6 +50,7 @@ protected:
     void selectBank(uint8_t driver, uint8_t bank);
     void writeRegister8(uint8_t driver, uint8_t bank, uint8_t reg, uint8_t data);
     void writeBytes(uint8_t driver, uint8_t reg, uint8_t n, uint8_t *data);
+    void writeBuffer(uint8_t frame);
     uint8_t inactiveFrame() const {
         return activeFrame == ISSI_PRIMARY_BUFFER ? ISSI_SECONDARY_BUFFER : ISSI_PRIMARY_BUFFER;
     }
@@ -59,6 +59,7 @@ protected:
     I2C i2c = I2C(P0_5, P0_4);
     uint8_t activeFrame = ISSI_PRIMARY_BUFFER;
     const uint8_t addresses[4] = { 0x74, 0x75, 0x76, 0x77 };
+    uint8_t ledBuffer[4][6][24] = {};
 };
 
 

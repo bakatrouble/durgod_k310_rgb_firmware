@@ -17,36 +17,31 @@ void LEDController::init() {
     setAudioSync(false);
     // clear and select secondary framebuffer
     lowLevelClear(ISSI_SECONDARY_BUFFER);
-    displayFrame(ISSI_SECONDARY_BUFFER);
+    display();
     // clear and select primary framebuffer
     lowLevelClear(ISSI_PRIMARY_BUFFER);
-    displayFrame(ISSI_PRIMARY_BUFFER);
+    display();
     // enable driver
     setDriversPower(true);
 }
 
-uint8_t LEDController::toggleFrame() {
-    displayFrame(inactiveFrame());
-    return activeFrame;
+void LEDController::display() {
+    activeFrame = inactiveFrame();
+    writeBuffer(activeFrame);
+    callFunction(ISSI_REG_PICTUREFRAME, activeFrame);
 }
 
-void LEDController::displayFrame(uint8_t frame) {
-    if (frame > 7) frame = 0;
-    activeFrame = frame;
-    callFunction(ISSI_REG_PICTUREFRAME, frame);
-}
-
-void LEDController::setKeyColor(uint8_t idx, Color color, bool inBuffer) {
+void LEDController::setKeyColor(uint8_t idx, Color color) {
     if (idx >= keyCount) return;
     auto *ledLoc = &indexToLed[idx];
-    writeRegister8(ledLoc->driver, inBuffer ? inactiveFrame() : activeFrame, COLOR_OFFSET + ledLoc->r, color.r);
-    writeRegister8(ledLoc->driver, inBuffer ? inactiveFrame() : activeFrame, COLOR_OFFSET + ledLoc->g, color.g);
-    writeRegister8(ledLoc->driver, inBuffer ? inactiveFrame() : activeFrame, COLOR_OFFSET + ledLoc->b, color.b);
+    ledBuffer[ledLoc->driver][ledLoc->r / 24][ledLoc->r % 24] = color.r;
+    ledBuffer[ledLoc->driver][ledLoc->g / 24][ledLoc->g % 24] = color.g;
+    ledBuffer[ledLoc->driver][ledLoc->b / 24][ledLoc->b % 24] = color.b;
 }
 
-void LEDController::setAllKeys(Color color, bool inBuffer) {
+void LEDController::setAllKeys(Color color) {
     for (uint8_t i=0; i < keyCount; i++) {
-        setKeyColor(i, color, inBuffer);
+        setKeyColor(i, color);
     }
 }
 
@@ -86,15 +81,21 @@ void LEDController::writeBytes(uint8_t driver, uint8_t reg, uint8_t n, uint8_t *
     i2c.stop();
 }
 
-void LEDController::lowLevelClear(uint8_t frame) {
-    uint8_t nemo[24] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    uint8_t enable = 0xFF;
-
+void LEDController::writeBuffer(uint8_t frame) {
     for (uint8_t driver=0; driver < 4; driver++) {
         selectBank(driver, frame);
         for (uint8_t i=0; i < 6; i++) {
-            writeBytes(driver, COLOR_OFFSET + i*24, 24, nemo);
+            writeBytes(driver, COLOR_OFFSET + i*24, 24, const_cast<uint8_t*>(ledBuffer[driver][i]));
         }
+    }
+}
+
+void LEDController::lowLevelClear(uint8_t frame) {
+    uint8_t enable = 0xFF;
+
+    writeBuffer(frame);
+    for (uint8_t driver=0; driver < 4; driver++) {
+        selectBank(driver, frame);
         for (uint8_t i=0; i < 18; i++) {
             writeBytes(driver, ENABLE_OFFSET + i, 1, &enable);
         }

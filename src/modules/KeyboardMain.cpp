@@ -18,7 +18,7 @@ void KeyboardMain::init() {
 
     // enable backlight
     ledController.setAllKeys(settings.ledColor);
-    ledController.toggleFrame();
+    ledController.display();
 
     // start timer;
     timer.start();
@@ -158,7 +158,7 @@ void KeyboardMain::processVendorCommand() {
                 if (keyboardHid.vendorCommandData[2 + i / 8] & (1 << i % 8))
                     ledController.setKeyColor(i, settings.ledColor);
             }
-            ledController.toggleFrame();
+            ledController.display();
             response.data[0] = 0;
             responseLength = 1;
             break;
@@ -273,13 +273,13 @@ void KeyboardMain::drawBacklight() {
             break;
         }
     }
-    ledController.toggleFrame();
+    ledController.display();
 }
 
 void KeyboardMain::activateBootloader() {
     keyboardHid.disconnect();
     ledController.setAllKeys(COLOR_RED);
-    ledController.toggleFrame();
+    ledController.display();
     led_num = led_caps = led_scroll = led_lock = led_app = 0;
     IAP::invokeIsp();
 }
